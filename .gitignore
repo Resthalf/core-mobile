@@ -1,0 +1,53 @@
+# Built application files
+/*/build/
+
+# Crashlytics configurations
+com_crashlytics_export_strings.xml
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+build/
+.gradle/
+.idea/
+captures/
+local.properties
+gradlew
+gradlew.bat
+
+# External native build folder generated in Android Studio 2.2 and later
+.externalNativeBuild/
+.cxx/
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+
+# Android Studio specific files
+.idea/workspace.xml
+.idea/libraries/
+.idea/tasks.xml
+.idea/.name
+.idea/compiler.xml
+.idea/copyright/profiles_settings.xml
+.idea/encodings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/scopes/scope_settings.xml
+*.iml
+
+ MacOS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Proguard files (if applicable, consider versioning mapping.txt)
+proguard/
