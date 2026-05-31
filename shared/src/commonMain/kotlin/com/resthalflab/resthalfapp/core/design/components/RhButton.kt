@@ -3,16 +3,20 @@ package com.resthalflab.resthalfapp.core.design.components
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import com.resthalflab.resthalfapp.core.design.RhRadius
 
 @Composable
 fun RhButton(
@@ -21,12 +25,14 @@ fun RhButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     loading: Boolean = false,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+    shape: Shape = RhRadius.button,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.height(56.dp),
         enabled = enabled && !loading,
+        shape = shape,
         contentPadding = contentPadding,
     ) {
         if (loading) {
@@ -37,7 +43,7 @@ fun RhButton(
             )
             Spacer(Modifier.width(8.dp))
         }
-        Row { Text(text) }
+        Row { Text(text, style = MaterialTheme.typography.titleMedium) }
     }
 }
 
@@ -47,9 +53,15 @@ fun RhOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    shape: Shape = RhRadius.button,
 ) {
-    OutlinedButton(onClick = onClick, modifier = modifier, enabled = enabled) {
-        Text(text)
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.height(56.dp),
+        enabled = enabled,
+        shape = shape,
+    ) {
+        Text(text, style = MaterialTheme.typography.titleMedium)
     }
 }
 

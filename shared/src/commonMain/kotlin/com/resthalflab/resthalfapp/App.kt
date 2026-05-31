@@ -1,34 +1,44 @@
 package com.resthalflab.resthalfapp
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.arkivanov.decompose.extensions.compose.stack.Children
-import com.resthalflab.resthalfapp.app.HomeComponent
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.resthalflab.resthalfapp.app.MainComponent
 import com.resthalflab.resthalfapp.app.RootComponent
 import com.resthalflab.resthalfapp.core.design.ResthalfTheme
-import com.resthalflab.resthalfapp.core.design.components.RhButton
-import com.resthalflab.resthalfapp.core.design.components.RhScaffold
 import com.resthalflab.resthalfapp.feature.auth.ui.login.LoginScreen
+import com.resthalflab.resthalfapp.feature.bookings.ui.BookingsScreen
+import com.resthalflab.resthalfapp.feature.favorites.ui.FavoritesScreen
+import com.resthalflab.resthalfapp.feature.listing.ui.ListingDetailScreen
+import com.resthalflab.resthalfapp.feature.profile.ui.ProfileScreen
+import com.resthalflab.resthalfapp.feature.search.ui.SearchTab
 
 @Composable
 fun App(rootComponent: RootComponent) {
     ResthalfTheme {
-        Surface(modifier = Modifier.fillMaxSize()) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Children(stack = rootComponent.childStack) { child ->
                 when (val instance = child.instance) {
                     is RootComponent.Child.Login -> LoginScreen(instance.component)
-                    is RootComponent.Child.Home -> HomeScreen(instance.component)
+                    is RootComponent.Child.Main -> MainScreen(instance.component)
+                    is RootComponent.Child.ListingDetail -> ListingDetailScreen(instance.component)
                 }
             }
         }
@@ -36,26 +46,49 @@ fun App(rootComponent: RootComponent) {
 }
 
 @Composable
-private fun HomeScreen(component: HomeComponent) {
-    val session by component.session.collectAsStateWithLifecycle()
-    RhScaffold(title = "Resthalf") { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "Welcome${session?.email?.let { ", $it" } ?: ""}",
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Text(
-                text = "Running on ${component.platformName}",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            RhButton(text = "Sign out", onClick = component::onLogoutClicked)
+private fun MainScreen(component: MainComponent) {
+    val stack by component.stack.subscribeAsState()
+    val activeTab = stack.active.instance.tab
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = {
+            NavigationBar {
+                MainComponent.Tab.entries.forEach { tab ->
+                    NavigationBarItem(
+                        selected = activeTab == tab,
+                        onClick = { component.onTabSelected(tab) },
+                        icon = { Icon(tab.icon(), contentDescription = tab.label()) },
+                        label = { Text(tab.label()) },
+                    )
+                }
+            }
+        },
+    ) { padding ->
+        Children(
+            stack = component.stack,
+            modifier = Modifier.fillMaxSize().padding(padding),
+        ) { child ->
+            when (val instance = child.instance) {
+                is MainComponent.Child.Home -> SearchTab(instance.component)
+                is MainComponent.Child.Bookings -> BookingsScreen(instance.component)
+                is MainComponent.Child.Favorites -> FavoritesScreen(instance.component)
+                is MainComponent.Child.Profile -> ProfileScreen(instance.component)
+            }
         }
     }
+}
+
+private fun MainComponent.Tab.label(): String = when (this) {
+    MainComponent.Tab.Home -> "Home"
+    MainComponent.Tab.Bookings -> "Bookings"
+    MainComponent.Tab.Favorites -> "Favorites"
+    MainComponent.Tab.Profile -> "Profile"
+}
+
+private fun MainComponent.Tab.icon(): ImageVector = when (this) {
+    MainComponent.Tab.Home -> Icons.Outlined.Home
+    MainComponent.Tab.Bookings -> Icons.Outlined.CalendarMonth
+    MainComponent.Tab.Favorites -> Icons.Outlined.FavoriteBorder
+    MainComponent.Tab.Profile -> Icons.Outlined.Person
 }

@@ -9,6 +9,8 @@ import com.resthalflab.resthalfapp.core.network.TokenProvider
 import com.resthalflab.resthalfapp.core.storage.SettingsFactory
 import com.resthalflab.resthalfapp.core.storage.defaultSettingsFactory
 import com.resthalflab.resthalfapp.feature.auth.authModule
+import com.resthalflab.resthalfapp.feature.listing.listingModule
+import com.resthalflab.resthalfapp.feature.search.searchModule
 import io.ktor.client.HttpClient
 import org.koin.core.module.Module
 import org.koin.core.qualifier.named
@@ -37,4 +39,6 @@ val appModules: List<Module> = listOf(
     storageModule,
     networkModule,
     authModule,
+    searchModule,
+    listingModule,
 )

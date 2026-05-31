@@ -15,9 +15,9 @@ A modular-monolith Kotlin Multiplatform app organized **package-by-feature** ins
 ## Package layout (inside `shared/src/commonMain/kotlin/com/resthalflab/resthalfapp/`)
 
 ```
-app/                         host: root component + Koin module composition
-  RootComponent.kt           Decompose root with StackNavigation
-  HomeComponent.kt           temporary landing component
+app/                         host: root + main shell + Koin module composition
+  RootComponent.kt           Decompose root: Login | Main (driven by AuthApi.session)
+  MainComponent.kt           authenticated bottom-nav shell (Home/Bookings/Favorites/Profile tabs)
   AppModule.kt               list of all Koin modules
 
 core/                        cross-cutting capabilities — no feature knowledge

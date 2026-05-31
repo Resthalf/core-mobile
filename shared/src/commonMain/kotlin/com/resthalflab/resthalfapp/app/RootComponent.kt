@@ -5,11 +5,15 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.navigate
+import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.resthalflab.resthalfapp.feature.auth.api.AuthApi
 import com.resthalflab.resthalfapp.feature.auth.loginComponent
 import com.resthalflab.resthalfapp.feature.auth.ui.login.LoginComponent
+import com.resthalflab.resthalfapp.feature.listing.api.ListingComponentFactory
+import com.resthalflab.resthalfapp.feature.listing.api.ListingDetailComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
@@ -21,7 +25,8 @@ interface RootComponent {
 
     sealed interface Child {
         data class Login(val component: LoginComponent) : Child
-        data class Home(val component: HomeComponent) : Child
+        data class Main(val component: MainComponent) : Child
+        data class ListingDetail(val component: ListingDetailComponent) : Child
     }
 }
 
@@ -46,19 +51,32 @@ class DefaultRootComponent(
     init {
         scope.launch {
             auth.session.drop(1).collect { session ->
-                val target = if (session != null) Config.Home else Config.Login
+                val target = if (session != null) Config.Main else Config.Login
                 navigation.navigate { listOf(target) }
             }
         }
     }
 
     private fun initialConfig(): Config =
-        if (auth.session.value != null) Config.Home else Config.Login
+        if (auth.session.value != null) Config.Main else Config.Login
 
     private fun child(config: Config, context: ComponentContext): RootComponent.Child =
         when (config) {
             Config.Login -> RootComponent.Child.Login(loginComponent(context, koin))
-            Config.Home -> RootComponent.Child.Home(DefaultHomeComponent(context, auth))
+            Config.Main -> RootComponent.Child.Main(
+                DefaultMainComponent(
+                    componentContext = context,
+                    koin = koin,
+                    onOpenListing = { id -> navigation.push(Config.ListingDetail(id)) },
+                )
+            )
+            is Config.ListingDetail -> RootComponent.Child.ListingDetail(
+                koin.get<ListingComponentFactory>().createDetail(
+                    componentContext = context,
+                    listingId = config.id,
+                    onBack = { navigation.pop() },
+                )
+            )
         }
 
     @Serializable
@@ -67,6 +85,9 @@ class DefaultRootComponent(
         data object Login : Config
 
         @Serializable
-        data object Home : Config
+        data object Main : Config
+
+        @Serializable
+        data class ListingDetail(val id: String) : Config
     }
 }
