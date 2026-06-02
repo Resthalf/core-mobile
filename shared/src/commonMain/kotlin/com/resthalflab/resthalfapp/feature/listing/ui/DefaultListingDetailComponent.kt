@@ -17,6 +17,7 @@ class DefaultListingDetailComponent(
     private val getListing: GetListingUseCase,
     private val listingId: String,
     private val onBack: () -> Unit,
+    private val onBook: () -> Unit,
 ) : ListingDetailComponent, ComponentContext by componentContext {
 
     private val scope = coroutineScope(Dispatchers.Main)
@@ -39,4 +40,5 @@ class DefaultListingDetailComponent(
 
     override fun onRetry() = load()
     override fun onBackClicked() = onBack()
+    override fun onBookClicked() = onBook()
 }

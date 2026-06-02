@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -88,7 +90,7 @@ fun ResultsScreen(component: ResultsComponent) {
                 else -> LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = RhSpacing.xl),
+                    contentPadding = PaddingValues(bottom = RhSpacing.xl + 16.dp),
                 ) {
                     items(state.results, key = { it.id }) { listing ->
                         ListingRow(listing) { component.onListingClicked(listing.id) }
@@ -123,7 +125,7 @@ private fun ResultsHeader(
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (elevated) 4.dp else 0.dp,
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

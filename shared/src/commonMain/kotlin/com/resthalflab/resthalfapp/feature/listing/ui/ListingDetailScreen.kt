@@ -72,7 +72,7 @@ fun ListingDetailScreen(component: ListingDetailComponent) {
                 RhButton(text = "Retry", onClick = component::onRetry)
             }
         }
-        is State.Content -> DetailContent(s.detail, component::onBackClicked)
+        is State.Content -> DetailContent(s.detail, component::onBackClicked, component::onBookClicked)
     }
 }
 
@@ -90,7 +90,7 @@ private fun WithBack(onBack: () -> Unit, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun DetailContent(detail: ListingDetail, onBack: () -> Unit) {
+private fun DetailContent(detail: ListingDetail, onBack: () -> Unit, onBook: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
     ) {
@@ -191,7 +191,7 @@ private fun DetailContent(detail: ListingDetail, onBack: () -> Unit) {
                 Spacer(Modifier.height(RhSpacing.xl))
                 RhButton(
                     text = "Book Night Stay",
-                    onClick = { /* TODO Phase 3: booking flow */ },
+                    onClick = onBook,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(RhSpacing.lg))

@@ -44,6 +44,8 @@ class DefaultMainComponent(
     componentContext: ComponentContext,
     private val koin: Koin,
     private val onOpenListing: (String) -> Unit,
+    private val onOpenSearchResults: (String) -> Unit,
+    private val onOpenBookingDetail: (String) -> Unit,
 ) : MainComponent, ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
@@ -63,8 +65,8 @@ class DefaultMainComponent(
 
     private fun child(config: Config, context: ComponentContext): MainComponent.Child =
         when (config) {
-            Config.Home -> MainComponent.Child.Home(searchTabComponent(context, koin, onOpenListing))
-            Config.Bookings -> MainComponent.Child.Bookings(bookingsComponent(context))
+            Config.Home -> MainComponent.Child.Home(searchTabComponent(context, onOpenSearchResults))
+            Config.Bookings -> MainComponent.Child.Bookings(bookingsComponent(context, koin, onOpenBookingDetail))
             Config.Favorites -> MainComponent.Child.Favorites(favoritesComponent(context))
             Config.Profile -> MainComponent.Child.Profile(profileComponent(context, koin))
         }

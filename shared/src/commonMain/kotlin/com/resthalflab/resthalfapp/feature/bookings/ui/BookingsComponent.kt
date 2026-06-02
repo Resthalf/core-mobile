@@ -1,9 +1,73 @@
 package com.resthalflab.resthalfapp.feature.bookings.ui
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.resthalflab.resthalfapp.core.domain.AppResult
+import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingsUseCase
+import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
+import com.resthalflab.resthalfapp.feature.bookings.domain.model.BookingStatus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-interface BookingsComponent
+enum class BookingTab(val label: String) {
+    All("All"),
+    Active("Active"),
+    Completed("Completed"),
+    Cancelled("Cancelled"),
+    Overstayed("Overstayed"),
+    ;
+    companion object {
+        val labels = entries.map { it.label }
+    }
+}
+
+interface BookingsComponent {
+    val state: StateFlow<UiState>
+    fun onTabSelected(index: Int)
+    fun onBookingClicked(id: String)
+
+    data class UiState(
+        val selectedTabIndex: Int = 0,
+        val allBookings: List<Booking> = emptyList(),
+        val loading: Boolean = false,
+        val error: String? = null,
+    ) {
+        val visibleBookings: List<Booking> get() = when (BookingTab.entries[selectedTabIndex]) {
+            BookingTab.All -> allBookings
+            BookingTab.Active -> allBookings.filter { it.status == BookingStatus.Active }
+            BookingTab.Completed -> allBookings.filter { it.status == BookingStatus.Completed }
+            BookingTab.Cancelled -> allBookings.filter { it.status == BookingStatus.Cancelled }
+            BookingTab.Overstayed -> allBookings.filter { it.status == BookingStatus.Overstayed }
+        }
+    }
+}
 
 class DefaultBookingsComponent(
     componentContext: ComponentContext,
-) : BookingsComponent, ComponentContext by componentContext
+    private val getBookings: GetBookingsUseCase,
+    private val onOpenBookingDetail: (String) -> Unit = {},
+) : BookingsComponent, ComponentContext by componentContext {
+
+    private val scope = coroutineScope(Dispatchers.Main)
+    private val _state = MutableStateFlow(BookingsComponent.UiState(loading = true))
+    override val state: StateFlow<BookingsComponent.UiState> = _state.asStateFlow()
+
+    init {
+        scope.launch {
+            when (val result = getBookings()) {
+                is AppResult.Success -> _state.update { it.copy(loading = false, allBookings = result.value) }
+                is AppResult.Failure -> _state.update { it.copy(loading = false, error = result.error.message) }
+            }
+        }
+    }
+
+    override fun onTabSelected(index: Int) {
+        _state.update { it.copy(selectedTabIndex = index) }
+    }
+
+    override fun onBookingClicked(id: String) = onOpenBookingDetail(id)
+}

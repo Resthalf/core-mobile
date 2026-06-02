@@ -25,10 +25,13 @@ import com.resthalflab.resthalfapp.app.RootComponent
 import com.resthalflab.resthalfapp.core.design.ResthalfTheme
 import com.resthalflab.resthalfapp.feature.auth.ui.login.LoginScreen
 import com.resthalflab.resthalfapp.feature.bookings.ui.BookingsScreen
+import com.resthalflab.resthalfapp.feature.bookings.ui.detail.BookingDetailScreen
 import com.resthalflab.resthalfapp.feature.favorites.ui.FavoritesScreen
+import com.resthalflab.resthalfapp.feature.listing.ui.BookingConfirmationScreen
 import com.resthalflab.resthalfapp.feature.listing.ui.ListingDetailScreen
 import com.resthalflab.resthalfapp.feature.profile.ui.ProfileScreen
 import com.resthalflab.resthalfapp.feature.search.ui.SearchTab
+import com.resthalflab.resthalfapp.feature.search.ui.results.ResultsScreen
 
 @Composable
 fun App(rootComponent: RootComponent) {
@@ -38,7 +41,10 @@ fun App(rootComponent: RootComponent) {
                 when (val instance = child.instance) {
                     is RootComponent.Child.Login -> LoginScreen(instance.component)
                     is RootComponent.Child.Main -> MainScreen(instance.component)
+                    is RootComponent.Child.SearchResults -> ResultsScreen(instance.component)
                     is RootComponent.Child.ListingDetail -> ListingDetailScreen(instance.component)
+                    is RootComponent.Child.BookingConfirmation -> BookingConfirmationScreen(instance.component)
+                    is RootComponent.Child.BookingDetail -> BookingDetailScreen(instance.component)
                 }
             }
         }

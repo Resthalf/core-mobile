@@ -7,7 +7,6 @@ import com.resthalflab.resthalfapp.feature.search.domain.SearchListingsUseCase
 import com.resthalflab.resthalfapp.feature.search.domain.SearchRepository
 import com.resthalflab.resthalfapp.feature.search.ui.DefaultSearchTabComponent
 import com.resthalflab.resthalfapp.feature.search.ui.SearchTabComponent
-import org.koin.core.Koin
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -17,17 +16,11 @@ val searchModule: Module = module {
     factory { SearchListingsUseCase(get()) }
 }
 
-/**
- * Feature entry point: builds the Home/Search tab (home form + results).
- * Opening a listing detail is delegated to [onOpenListing] so the host can present it full-screen.
- */
+/** Results and deeper screens are root destinations — only the home tab is built here. */
 fun searchTabComponent(
     componentContext: ComponentContext,
-    koin: Koin,
-    onOpenListing: (String) -> Unit,
-): SearchTabComponent =
-    DefaultSearchTabComponent(
-        componentContext = componentContext,
-        searchListings = koin.get(),
-        onOpenListing = onOpenListing,
-    )
+    onOpenSearchResults: (String) -> Unit,
+): SearchTabComponent = DefaultSearchTabComponent(
+    componentContext = componentContext,
+    onOpenSearchResults = onOpenSearchResults,
+)

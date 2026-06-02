@@ -2,15 +2,16 @@ package com.resthalflab.resthalfapp.feature.listing.api
 
 import kotlinx.coroutines.flow.StateFlow
 
-interface ListingDetailComponent {
+interface BookingConfirmationComponent {
     val state: StateFlow<State>
     fun onBackClicked()
-    fun onBookClicked()
     fun onRetry()
+    fun onViewDetails()
+    fun onProceedToPayment()
 
     sealed interface State {
         data object Loading : State
         data class Error(val message: String) : State
-        data class Content(val detail: ListingDetail) : State
+        data class Content(val confirmation: BookingConfirmation) : State
     }
 }
