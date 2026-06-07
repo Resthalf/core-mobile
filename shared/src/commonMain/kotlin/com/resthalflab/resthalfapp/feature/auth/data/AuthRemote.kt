@@ -1,31 +1,73 @@
 package com.resthalflab.resthalfapp.feature.auth.data
 
-import com.resthalflab.resthalfapp.feature.auth.data.dto.TokenResponse
+import com.resthalflab.resthalfapp.feature.auth.api.AccountType
+import com.resthalflab.resthalfapp.feature.auth.api.AuthSession
+import com.resthalflab.resthalfapp.feature.auth.data.dto.GuestAuthResponse
+import com.resthalflab.resthalfapp.feature.auth.data.dto.LoginRequest
+import com.resthalflab.resthalfapp.feature.auth.data.dto.RegisterRequest
+import com.resthalflab.resthalfapp.feature.auth.data.dto.StaffAuthResponse
 import io.ktor.client.HttpClient
-import kotlinx.coroutines.delay
+import io.ktor.client.call.body
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
 
-// Phase 1 stub. Replace these stubs with real Ktor calls when the backend lands:
-//   client.post("auth/login") { setBody(LoginRequest(email, password)) }.body<TokenResponse>()
+/** Common shape both guest and staff responses map to. */
+data class AuthResult(val token: String, val session: AuthSession)
+
+/** Uses the bare auth client (no Bearer plugin) — login/register don't need a token. */
 class AuthRemote(
-    @Suppress("unused") private val client: HttpClient,
+    private val client: HttpClient,
 ) {
-    suspend fun login(email: String, password: String): TokenResponse {
-        delay(500)
-        return TokenResponse(
-            accessToken = "stub.access.token.${email.hashCode()}",
-            refreshToken = "stub.refresh.token.${email.hashCode()}",
-            userId = "stub-user-${email.hashCode()}",
-            email = email,
-        )
+    suspend fun login(accountType: AccountType, phone: String, password: String): AuthResult {
+        val body = LoginRequest(phone = phone, password = password)
+        return when (accountType) {
+            AccountType.Guest ->
+                client.post("auth/guest/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody(body)
+                }.body<GuestAuthResponse>().toResult()
+
+            AccountType.Staff ->
+                client.post("auth/staff/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody(body)
+                }.body<StaffAuthResponse>().toResult()
+        }
     }
 
-    suspend fun refresh(currentRefresh: String): TokenResponse {
-        delay(200)
-        return TokenResponse(
-            accessToken = "stub.access.rotated.${currentRefresh.hashCode()}",
-            refreshToken = "stub.refresh.rotated.${currentRefresh.hashCode()}",
-            userId = "stub-user",
-            email = "stub@resthalf.dev",
-        )
-    }
+    suspend fun register(
+        fullName: String,
+        phone: String,
+        email: String,
+        password: String,
+    ): AuthResult =
+        client.post("auth/guest/register") {
+            contentType(ContentType.Application.Json)
+            setBody(RegisterRequest(fullName = fullName, phone = phone, email = email, password = password))
+        }.body<GuestAuthResponse>().toResult()
 }
+
+private fun GuestAuthResponse.toResult(): AuthResult = AuthResult(
+    token = token,
+    session = AuthSession(
+        id = guest.id,
+        displayName = guest.fullName,
+        phone = guest.phone,
+        accountType = AccountType.Guest,
+        email = guest.email,
+    ),
+)
+
+private fun StaffAuthResponse.toResult(): AuthResult = AuthResult(
+    token = token,
+    session = AuthSession(
+        id = staff.id,
+        displayName = staff.name,
+        phone = staff.phone,
+        accountType = AccountType.Staff,
+        role = staff.role,
+        hotelId = staff.hotelId,
+    ),
+)

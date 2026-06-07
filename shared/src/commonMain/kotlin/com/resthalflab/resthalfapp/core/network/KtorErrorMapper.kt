@@ -14,8 +14,12 @@ import kotlinx.serialization.SerializationException
 fun Throwable.toAppError(): AppError = when (this) {
     is ClientRequestException -> {
         val code = response.status.value
-        if (code == 401) AppError.Auth.SessionExpired
-        else AppError.Network.Server(code, response.status.description, this)
+        when (code) {
+            // 401/422 on auth endpoints = bad credentials/validation. (Token-expiry on authenticated
+            // calls is handled by the Bearer refresh path, which clears the token.)
+            401, 422 -> AppError.Auth.InvalidCredentials
+            else -> AppError.Network.Server(code, response.status.description, this)
+        }
     }
     is ServerResponseException -> AppError.Network.Server(response.status.value, response.status.description, this)
     is ResponseException -> AppError.Network.Server(response.status.value, response.status.description, this)

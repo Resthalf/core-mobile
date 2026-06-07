@@ -12,7 +12,7 @@ sealed class AppError(open val message: String, open val cause: Throwable? = nul
     sealed class Auth(message: String) : AppError(message) {
         data object Unauthenticated : Auth("Not signed in")
         data object SessionExpired : Auth("Session expired, please sign in again")
-        data object InvalidCredentials : Auth("Email or password is incorrect")
+        data object InvalidCredentials : Auth("Incorrect phone or password")
     }
 
     data class Validation(val field: String, override val message: String) : AppError(message)

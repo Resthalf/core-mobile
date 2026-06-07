@@ -26,9 +26,16 @@ fun ProfileScreen(component: ProfileComponent) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = session?.email ?: "Signed in",
+                text = session?.displayName ?: "Signed in",
                 style = MaterialTheme.typography.titleMedium,
             )
+            session?.let {
+                Text(
+                    text = it.email ?: it.phone,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             RhOutlinedButton(text = "Sign out", onClick = component::onLogoutClicked)
         }
     }

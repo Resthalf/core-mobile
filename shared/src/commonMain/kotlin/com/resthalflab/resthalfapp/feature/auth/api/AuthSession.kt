@@ -1,6 +1,15 @@
 package com.resthalflab.resthalfapp.feature.auth.api
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class AuthSession(
-    val userId: String,
-    val email: String,
+    val id: String,
+    val displayName: String,
+    val phone: String,
+    val accountType: AccountType,
+    val email: String? = null,
+    // Staff-only
+    val role: String? = null,
+    val hotelId: String? = null,
 )

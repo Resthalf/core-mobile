@@ -11,10 +11,13 @@ import com.resthalflab.resthalfapp.feature.auth.data.AuthRemote
 import com.resthalflab.resthalfapp.feature.auth.data.AuthRepository
 import com.resthalflab.resthalfapp.feature.auth.data.AuthTokenProvider
 import com.resthalflab.resthalfapp.feature.auth.domain.LoginUseCase
+import com.resthalflab.resthalfapp.feature.auth.domain.RegisterUseCase
 import com.resthalflab.resthalfapp.feature.auth.ui.login.DefaultLoginComponent
 import com.resthalflab.resthalfapp.feature.auth.ui.login.LoginComponent
+import com.resthalflab.resthalfapp.feature.auth.ui.register.DefaultRegisterComponent
+import com.resthalflab.resthalfapp.feature.auth.ui.register.RegisterComponent
+import org.koin.core.Koin
 import org.koin.core.module.Module
-import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -22,15 +25,30 @@ val authModule: Module = module {
     single<SecureTokenStore> {
         SettingsSecureTokenStore(get<SettingsFactory>().create("resthalf.auth"))
     }
-    // Uses the bare auth client (no Bearer plugin) so login/refresh don't recurse through refresh.
+    // Uses the bare auth client (no Bearer plugin); login/register don't need a token.
     single { AuthRemote(get(named(AUTH_HTTP_CLIENT))) }
-    single<TokenProvider> { AuthTokenProvider(get(), get()) }
-    single<AuthApi> { AuthRepository(get(), get()) }
+    single<TokenProvider> { AuthTokenProvider(get()) }
+    single<AuthApi> { AuthRepository(get(), get(), get()) }
     factory { LoginUseCase(get()) }
-    factory<LoginComponent> { (ctx: ComponentContext) ->
-        DefaultLoginComponent(ctx, get())
-    }
+    factory { RegisterUseCase(get()) }
 }
 
-internal fun loginComponent(ctx: ComponentContext, koin: org.koin.core.Koin): LoginComponent =
-    koin.get { parametersOf(ctx) }
+fun loginComponent(
+    ctx: ComponentContext,
+    koin: Koin,
+    onNavigateToRegister: () -> Unit,
+): LoginComponent = DefaultLoginComponent(
+    componentContext = ctx,
+    login = koin.get(),
+    onNavigateToRegister = onNavigateToRegister,
+)
+
+fun registerComponent(
+    ctx: ComponentContext,
+    koin: Koin,
+    onBack: () -> Unit,
+): RegisterComponent = DefaultRegisterComponent(
+    componentContext = ctx,
+    register = koin.get(),
+    onBack = onBack,
+)

@@ -68,7 +68,7 @@ class HttpClientFactory(
         if (config.logRequests) {
             val appLogger = logger
             install(Logging) {
-                level = LogLevel.INFO
+                level = LogLevel.ALL
                 this.logger = object : KtorLogger {
                     override fun log(message: String) {
                         appLogger.info("Http", message)

@@ -24,6 +24,7 @@ import com.resthalflab.resthalfapp.app.MainComponent
 import com.resthalflab.resthalfapp.app.RootComponent
 import com.resthalflab.resthalfapp.core.design.ResthalfTheme
 import com.resthalflab.resthalfapp.feature.auth.ui.login.LoginScreen
+import com.resthalflab.resthalfapp.feature.auth.ui.register.RegisterScreen
 import com.resthalflab.resthalfapp.feature.bookings.ui.BookingsScreen
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.BookingDetailScreen
 import com.resthalflab.resthalfapp.feature.favorites.ui.FavoritesScreen
@@ -40,6 +41,7 @@ fun App(rootComponent: RootComponent) {
             Children(stack = rootComponent.childStack) { child ->
                 when (val instance = child.instance) {
                     is RootComponent.Child.Login -> LoginScreen(instance.component)
+                    is RootComponent.Child.Register -> RegisterScreen(instance.component)
                     is RootComponent.Child.Main -> MainScreen(instance.component)
                     is RootComponent.Child.SearchResults -> ResultsScreen(instance.component)
                     is RootComponent.Child.ListingDetail -> ListingDetailScreen(instance.component)

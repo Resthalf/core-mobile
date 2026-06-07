@@ -25,9 +25,9 @@ private val storageModule: Module = module {
     single<SettingsFactory> { defaultSettingsFactory() }
 }
 
-// Replace baseUrl with the real backend URL when ready.
 private val networkModule: Module = module {
-    single { NetworkConfig(baseUrl = "https://api.resthalf.dev/v1/") }
+    // Trailing slash is required so relative request paths ("auth/guest/login") resolve correctly.
+    single { NetworkConfig(baseUrl = "https://resthalf-backend-production.up.railway.app/") }
     single { HttpClientFactory(get(), get()) }
     // Bare client for auth endpoints (no Bearer plugin) — breaks the auth <-> client DI cycle.
     single<HttpClient>(named(AUTH_HTTP_CLIENT)) { get<HttpClientFactory>().createAuthClient() }

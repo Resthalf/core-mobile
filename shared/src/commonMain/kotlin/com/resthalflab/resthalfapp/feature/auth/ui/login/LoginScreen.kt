@@ -18,10 +18,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,7 +47,9 @@ import com.resthalflab.resthalfapp.core.design.components.RhTextButton
 import com.resthalflab.resthalfapp.core.design.components.RhTextField
 import com.resthalflab.resthalfapp.core.design.components.RhWaveHeader
 import com.resthalflab.resthalfapp.core.design.components.RhWordmark
+import com.resthalflab.resthalfapp.feature.auth.api.AccountType
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(component: LoginComponent) {
     val state by component.state.collectAsStateWithLifecycle()
@@ -78,17 +84,31 @@ fun LoginScreen(component: LoginComponent) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(Modifier.height(RhSpacing.xl))
+            Spacer(Modifier.height(RhSpacing.lg))
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                AccountType.entries.forEachIndexed { index, type ->
+                    SegmentedButton(
+                        selected = state.accountType == type,
+                        onClick = { component.onEvent(LoginComponent.Event.AccountTypeChanged(type)) },
+                        enabled = !state.submitting,
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = AccountType.entries.size),
+                    ) {
+                        Text(type.name)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(RhSpacing.lg))
             RhTextField(
-                value = state.email,
-                onValueChange = { component.onEvent(LoginComponent.Event.EmailChanged(it)) },
-                placeholder = "Enter your email",
+                value = state.phone,
+                onValueChange = { component.onEvent(LoginComponent.Event.PhoneChanged(it)) },
+                placeholder = "Enter your phone number",
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !state.submitting,
-                isError = state.emailError != null,
-                errorText = state.emailError,
-                leadingIcon = Icons.Outlined.Person,
-                keyboardType = KeyboardType.Email,
+                isError = state.phoneError != null,
+                errorText = state.phoneError,
+                leadingIcon = Icons.Outlined.Phone,
+                keyboardType = KeyboardType.Phone,
                 imeAction = ImeAction.Next,
             )
 
@@ -160,7 +180,10 @@ fun LoginScreen(component: LoginComponent) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                RhTextButton(text = "Sign up", onClick = { /* TODO Phase 3: sign-up */ })
+                RhTextButton(
+                    text = "Sign up",
+                    onClick = { component.onEvent(LoginComponent.Event.CreateAccount) },
+                )
             }
             Spacer(Modifier.height(RhSpacing.lg))
         }
