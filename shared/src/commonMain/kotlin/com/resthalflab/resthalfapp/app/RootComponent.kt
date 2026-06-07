@@ -20,7 +20,8 @@ import com.resthalflab.resthalfapp.feature.bookings.ui.detail.DefaultBookingDeta
 import com.resthalflab.resthalfapp.feature.listing.api.BookingConfirmationComponent
 import com.resthalflab.resthalfapp.feature.listing.api.ListingComponentFactory
 import com.resthalflab.resthalfapp.feature.listing.api.ListingDetailComponent
-import com.resthalflab.resthalfapp.feature.search.domain.SearchListingsUseCase
+import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
+import com.resthalflab.resthalfapp.feature.search.domain.SearchHotelsUseCase
 import com.resthalflab.resthalfapp.feature.search.ui.results.DefaultResultsComponent
 import com.resthalflab.resthalfapp.feature.search.ui.results.ResultsComponent
 import kotlinx.coroutines.Dispatchers
@@ -96,7 +97,7 @@ class DefaultRootComponent(
                     componentContext = context,
                     koin = koin,
                     onOpenListing = { id -> navigation.push(Config.ListingDetail(id)) },
-                    onOpenSearchResults = { destination -> navigation.push(Config.SearchResults(destination)) },
+                    onOpenSearchResults = { args -> navigation.push(Config.SearchResults(args)) },
                     onOpenBookingDetail = { id -> navigation.push(Config.BookingDetail(id)) },
                 )
             )
@@ -104,9 +105,9 @@ class DefaultRootComponent(
             is Config.SearchResults -> RootComponent.Child.SearchResults(
                 DefaultResultsComponent(
                     componentContext = context,
-                    searchListings = koin.get<SearchListingsUseCase>(),
-                    destination = config.destination,
-                    onListingSelected = { id -> navigation.push(Config.ListingDetail(id)) },
+                    searchHotels = koin.get<SearchHotelsUseCase>(),
+                    args = config.args,
+                    onHotelSelected = { id -> navigation.push(Config.ListingDetail(id)) },
                     onBack = { navigation.pop() },
                 )
             )
@@ -150,7 +151,7 @@ class DefaultRootComponent(
         data object Main : Config
 
         @Serializable
-        data class SearchResults(val destination: String) : Config
+        data class SearchResults(val args: SearchArgs) : Config
 
         @Serializable
         data class ListingDetail(val id: String) : Config

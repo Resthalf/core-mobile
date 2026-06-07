@@ -19,12 +19,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Bedtime
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -44,15 +43,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.resthalflab.resthalfapp.core.design.RhOnSuccessContainer
 import com.resthalflab.resthalfapp.core.design.RhSpacing
-import com.resthalflab.resthalfapp.core.design.RhSuccessContainer
 import com.resthalflab.resthalfapp.core.design.components.RhButton
 import com.resthalflab.resthalfapp.core.design.components.RhIllustrationPlaceholder
-import com.resthalflab.resthalfapp.core.design.components.RhRatingRow
 import com.resthalflab.resthalfapp.core.design.components.RhTag
 import com.resthalflab.resthalfapp.core.domain.formatMoney
-import com.resthalflab.resthalfapp.feature.search.domain.model.Listing
+import com.resthalflab.resthalfapp.feature.search.domain.model.HotelSearchResult
 
 @Composable
 fun ResultsScreen(component: ResultsComponent) {
@@ -66,9 +62,10 @@ fun ResultsScreen(component: ResultsComponent) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         ResultsHeader(
-            destination = state.destination,
+            city = state.city,
             dateLabel = state.dateLabel,
-            stayWindow = state.stayWindow,
+            stayTitle = state.stayTitle,
+            windowShort = state.windowShort,
             elevated = elevated,
             onBack = component::onBackClicked,
             onFilter = { /* TODO Phase 3: filters */ },
@@ -87,13 +84,19 @@ fun ResultsScreen(component: ResultsComponent) {
                     Text(state.error!!, color = MaterialTheme.colorScheme.error)
                     RhButton(text = "Retry", onClick = component::onRetry)
                 }
+                state.results.isEmpty() -> Text(
+                    text = "No rooms available for this date",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 48.dp),
+                )
                 else -> LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = RhSpacing.xl + 16.dp),
+                    modifier = Modifier.fillMaxSize().navigationBarsPadding(),
+                    contentPadding = PaddingValues(bottom = RhSpacing.xl),
                 ) {
-                    items(state.results, key = { it.id }) { listing ->
-                        ListingRow(listing) { component.onListingClicked(listing.id) }
+                    items(state.results, key = { it.hotelId }) { hotel ->
+                        HotelRow(hotel) { component.onHotelClicked(hotel.hotelId) }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
                     item {
@@ -113,14 +116,14 @@ fun ResultsScreen(component: ResultsComponent) {
 
 @Composable
 private fun ResultsHeader(
-    destination: String,
+    city: String,
     dateLabel: String,
-    stayWindow: String,
+    stayTitle: String,
+    windowShort: String,
     elevated: Boolean,
     onBack: () -> Unit,
     onFilter: () -> Unit,
 ) {
-    // At rest: flat with a plain divider. While scrolling: drop shadow, no divider.
     Surface(
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (elevated) 4.dp else 0.dp,
@@ -137,12 +140,12 @@ private fun ResultsHeader(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = destination.ifBlank { "All cities" },
+                        text = city.ifBlank { "All cities" },
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "$dateLabel · $stayWindow",
+                        text = "$dateLabel · $windowShort",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -159,7 +162,7 @@ private fun ResultsHeader(
             }
 
             NightStayChip(
-                stayWindow = stayWindow,
+                label = "$stayTitle · $windowShort",
                 modifier = Modifier.padding(start = RhSpacing.lg, bottom = RhSpacing.md),
             )
             if (!elevated) {
@@ -170,7 +173,7 @@ private fun ResultsHeader(
 }
 
 @Composable
-private fun NightStayChip(stayWindow: String, modifier: Modifier = Modifier) {
+private fun NightStayChip(label: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(50),
@@ -188,112 +191,82 @@ private fun NightStayChip(stayWindow: String, modifier: Modifier = Modifier) {
                 modifier = Modifier.size(16.dp),
             )
             Spacer(Modifier.width(RhSpacing.xs))
-            Text(
-                text = "Night Stay · $stayWindow",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
 
 @Composable
-private fun ListingRow(listing: Listing, onClick: () -> Unit) {
-    Column(
+private fun HotelRow(hotel: HotelSearchResult, onClick: () -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = RhSpacing.lg, vertical = RhSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            HotelThumbnail()
-            Spacer(Modifier.width(RhSpacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RhTag(
-                        text = "Free cancellation",
-                        containerColor = RhSuccessContainer,
-                        contentColor = RhOnSuccessContainer,
-                    )
-                    Icon(
-                        Icons.Outlined.FavoriteBorder,
-                        contentDescription = "Save",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-                Spacer(Modifier.height(RhSpacing.xs))
-                Text(
-                    text = listing.name,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = listing.city,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(RhSpacing.xs))
-                RhRatingRow(rating = listing.rating, reviews = listing.reviewsCount)
-            }
-        }
-
-        Spacer(Modifier.height(RhSpacing.md))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            Column {
-                Text(
-                    text = "Night Stay · 12AM–12PM",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "1 room",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = formatMoney(listing.pricePerNight, listing.currency),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "/room",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun HotelThumbnail() {
-    Box(modifier = Modifier.size(96.dp)) {
-        // Random-image placeholder; swap for RhRemoteImage(thumbnailUrl) when search returns photos.
-        RhIllustrationPlaceholder(modifier = Modifier.matchParentSize())
         Surface(
-            modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(28.dp),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.size(width = 88.dp, height = 72.dp),
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Outlined.FavoriteBorder,
-                    contentDescription = "Save",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
+            RhIllustrationPlaceholder(modifier = Modifier.fillMaxSize())
         }
+
+        Spacer(Modifier.width(RhSpacing.md))
+
+        Column(modifier = Modifier.weight(1f)) {
+            hotel.badge?.let {
+                RhTag(text = it)
+                Spacer(Modifier.height(RhSpacing.xs))
+            }
+            Text(
+                text = hotel.hotelName,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = hotel.city,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = "${hotel.slotLabel} · ${hotel.windowLabel}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = if (hotel.roomCount == 1) "1 room available" else "${hotel.roomCount} rooms available",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Spacer(Modifier.width(RhSpacing.sm))
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = "From",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = formatMoney(hotel.fromPrice, hotel.currency),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "/ room",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp).size(20.dp),
+        )
     }
 }

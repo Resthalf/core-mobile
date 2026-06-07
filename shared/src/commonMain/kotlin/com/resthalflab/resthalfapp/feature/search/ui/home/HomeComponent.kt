@@ -1,38 +1,68 @@
 package com.resthalflab.resthalfapp.feature.search.ui.home
 
 import com.arkivanov.decompose.ComponentContext
+import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
+import com.resthalflab.resthalfapp.feature.search.api.SlotType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 
 interface HomeComponent {
     val state: StateFlow<UiState>
-    fun onDestinationChanged(value: String)
+    fun onCitySelected(city: String)
+    fun onDateSelected(date: LocalDate)
+    fun onSlotTypeSelected(slotType: SlotType)
     fun onSearchClicked()
 
     data class UiState(
-        val destination: String = "Jakarta",
-        // Static placeholders until the date/stay-window pickers land (Phase 3).
-        val dateLabel: String = "Fri, 24 May 2024",
-        val stayWindowTitle: String = "Stay window",
-        val stayWindowSubtitle: String = "12:00 AM – 12:00 PM (12 hours)",
+        val city: String,
+        val date: LocalDate,
+        val slotType: SlotType,
     )
 }
 
 class DefaultHomeComponent(
     componentContext: ComponentContext,
-    private val onSearch: (destination: String) -> Unit,
+    private val onSearch: (SearchArgs) -> Unit,
 ) : HomeComponent, ComponentContext by componentContext {
 
-    private val _state = MutableStateFlow(HomeComponent.UiState())
+    private val tz = TimeZone.currentSystemDefault()
+
+    private val _state = MutableStateFlow(
+        HomeComponent.UiState(
+            city = "Jakarta",
+            date = Clock.System.todayIn(tz),
+            slotType = defaultSlotForNow(),
+        )
+    )
     override val state: StateFlow<HomeComponent.UiState> = _state.asStateFlow()
 
-    override fun onDestinationChanged(value: String) {
-        _state.update { it.copy(destination = value) }
-    }
+    override fun onCitySelected(city: String) = _state.update { it.copy(city = city) }
+    override fun onDateSelected(date: LocalDate) = _state.update { it.copy(date = date) }
+    override fun onSlotTypeSelected(slotType: SlotType) = _state.update { it.copy(slotType = slotType) }
 
     override fun onSearchClicked() {
-        onSearch(_state.value.destination)
+        val s = _state.value
+        onSearch(
+            SearchArgs(
+                city = s.city,
+                date = s.date.toString(), // ISO yyyy-MM-dd
+                slotType = s.slotType,
+            )
+        )
+    }
+
+    // Browsing at night (evening or early morning) defaults to the half-day "night stay";
+    // daytime defaults to full-day. The user can still change it via the stay-window sheet.
+    private fun defaultSlotForNow(): SlotType {
+        val hour = Clock.System.now().toLocalDateTime(tz).hour
+        return if (hour >= 18 || hour < 6) SlotType.HALF_DAY else SlotType.FULL_DAY
     }
 }
+
+private fun Clock.System.todayIn(tz: TimeZone): LocalDate = now().toLocalDateTime(tz).date
