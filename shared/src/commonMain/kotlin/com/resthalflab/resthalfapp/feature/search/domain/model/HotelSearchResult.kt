@@ -14,4 +14,8 @@ data class HotelSearchResult(
     val fromPrice: Int,
     val currency: String,
     val roomCount: Int,
+    val rooms: List<RoomOption> = emptyList(),
+    // Not provided by /search yet — the rating row is hidden until the backend returns these.
+    val rating: Double? = null,
+    val reviewsCount: Int? = null,
 )

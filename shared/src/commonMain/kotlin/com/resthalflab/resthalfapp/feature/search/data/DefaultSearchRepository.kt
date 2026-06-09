@@ -8,6 +8,7 @@ import com.resthalflab.resthalfapp.feature.search.data.dto.RoomOfferDto
 import com.resthalflab.resthalfapp.feature.search.domain.SearchRepository
 import com.resthalflab.resthalfapp.feature.search.domain.formatClock12h
 import com.resthalflab.resthalfapp.feature.search.domain.model.HotelSearchResult
+import com.resthalflab.resthalfapp.feature.search.domain.model.RoomOption
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
@@ -33,7 +34,17 @@ class DefaultSearchRepository(
 
     private fun List<RoomOfferDto>.toHotelResult(slotType: SlotType): HotelSearchResult {
         val first = first()
-        val cheapest = minByOrNull { it.price } ?: first
+        val rooms = distinctBy { it.roomId }
+            .map {
+                RoomOption(
+                    roomId = it.roomId,
+                    roomNumber = it.roomNumber ?: "—",
+                    slotType = slotType,
+                    price = it.price,
+                    currency = it.currency,
+                )
+            }
+            .sortedBy { it.price }
         return HotelSearchResult(
             hotelId = first.hotel.id,
             hotelName = first.hotel.name,
@@ -42,9 +53,10 @@ class DefaultSearchRepository(
             slotLabel = first.label ?: slotType.name,
             badge = first.badge,
             windowLabel = windowLabel(first.startTime, first.endTime),
-            fromPrice = cheapest.price,
-            currency = cheapest.currency,
-            roomCount = size,
+            fromPrice = rooms.minOfOrNull { it.price } ?: first.price,
+            currency = first.currency,
+            roomCount = rooms.size,
+            rooms = rooms,
         )
     }
 
