@@ -57,6 +57,7 @@ import com.resthalflab.resthalfapp.core.design.components.RhIllustrationPlacehol
 import com.resthalflab.resthalfapp.core.design.components.RhRatingRow
 import com.resthalflab.resthalfapp.core.design.components.RhTag
 import com.resthalflab.resthalfapp.core.domain.formatMoney
+import com.resthalflab.resthalfapp.feature.listing.api.RoomSelection
 import com.resthalflab.resthalfapp.feature.search.domain.model.HotelSearchResult
 import com.resthalflab.resthalfapp.feature.search.domain.model.RoomOption
 import com.resthalflab.resthalfapp.feature.search.domain.stayTitle
@@ -115,7 +116,20 @@ fun ResultsScreen(component: ResultsComponent) {
                             onToggleExpand = {
                                 expandedIds[hotel.hotelId] = expandedIds[hotel.hotelId] != true
                             },
-                            onRoomClick = { component.onHotelClicked(hotel.hotelId) },
+                            onRoomClick = { room ->
+                                component.onRoomSelected(
+                                    RoomSelection(
+                                        roomId = room.roomId,
+                                        roomNumber = room.roomNumber,
+                                        hotelId = hotel.hotelId,
+                                        hotelName = hotel.hotelName,
+                                        city = hotel.city,
+                                        slotType = hotel.slotType.name,
+                                        price = room.price,
+                                        currency = room.currency,
+                                    )
+                                )
+                            },
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }

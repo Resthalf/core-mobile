@@ -3,6 +3,7 @@ package com.resthalflab.resthalfapp.feature.search.ui.results
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.resthalflab.resthalfapp.core.domain.AppResult
+import com.resthalflab.resthalfapp.feature.listing.api.RoomSelection
 import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
 import com.resthalflab.resthalfapp.feature.search.domain.SearchHotelsUseCase
 import com.resthalflab.resthalfapp.feature.search.domain.formatLongDate
@@ -18,7 +19,7 @@ import kotlinx.coroutines.launch
 
 interface ResultsComponent {
     val state: StateFlow<UiState>
-    fun onHotelClicked(hotelId: String)
+    fun onRoomSelected(selection: RoomSelection)
     fun onBackClicked()
     fun onRetry()
 
@@ -37,7 +38,7 @@ class DefaultResultsComponent(
     componentContext: ComponentContext,
     private val searchHotels: SearchHotelsUseCase,
     private val args: SearchArgs,
-    private val onHotelSelected: (String) -> Unit,
+    private val onOpenRoom: (RoomSelection) -> Unit,
     private val onBack: () -> Unit,
 ) : ResultsComponent, ComponentContext by componentContext {
 
@@ -66,7 +67,7 @@ class DefaultResultsComponent(
         }
     }
 
-    override fun onHotelClicked(hotelId: String) = onHotelSelected(hotelId)
+    override fun onRoomSelected(selection: RoomSelection) = onOpenRoom(selection)
     override fun onBackClicked() = onBack()
     override fun onRetry() = search()
 }

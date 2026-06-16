@@ -17,9 +17,11 @@ import com.resthalflab.resthalfapp.feature.auth.ui.register.RegisterComponent
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingByIdUseCase
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.BookingDetailComponent
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.DefaultBookingDetailComponent
+import com.resthalflab.resthalfapp.feature.listing.api.BookingConfirmationArgs
 import com.resthalflab.resthalfapp.feature.listing.api.BookingConfirmationComponent
 import com.resthalflab.resthalfapp.feature.listing.api.ListingComponentFactory
 import com.resthalflab.resthalfapp.feature.listing.api.ListingDetailComponent
+import com.resthalflab.resthalfapp.feature.listing.api.RoomSelection
 import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
 import com.resthalflab.resthalfapp.feature.search.domain.SearchHotelsUseCase
 import com.resthalflab.resthalfapp.feature.search.ui.results.DefaultResultsComponent
@@ -96,7 +98,6 @@ class DefaultRootComponent(
                 DefaultMainComponent(
                     componentContext = context,
                     koin = koin,
-                    onOpenListing = { id -> navigation.push(Config.ListingDetail(id)) },
                     onOpenSearchResults = { args -> navigation.push(Config.SearchResults(args)) },
                     onOpenBookingDetail = { id -> navigation.push(Config.BookingDetail(id)) },
                 )
@@ -107,7 +108,7 @@ class DefaultRootComponent(
                     componentContext = context,
                     searchHotels = koin.get<SearchHotelsUseCase>(),
                     args = config.args,
-                    onHotelSelected = { id -> navigation.push(Config.ListingDetail(id)) },
+                    onOpenRoom = { selection -> navigation.push(Config.ListingDetail(selection)) },
                     onBack = { navigation.pop() },
                 )
             )
@@ -115,16 +116,16 @@ class DefaultRootComponent(
             is Config.ListingDetail -> RootComponent.Child.ListingDetail(
                 koin.get<ListingComponentFactory>().createDetail(
                     componentContext = context,
-                    listingId = config.id,
+                    selection = config.selection,
                     onBack = { navigation.pop() },
-                    onBook = { navigation.push(Config.BookingConfirmation(config.id)) },
+                    onBooked = { args -> navigation.push(Config.BookingConfirmation(args)) },
                 )
             )
 
             is Config.BookingConfirmation -> RootComponent.Child.BookingConfirmation(
                 koin.get<ListingComponentFactory>().createBookingConfirmation(
                     componentContext = context,
-                    listingId = config.id,
+                    args = config.args,
                     onBack = { navigation.pop() },
                 )
             )
@@ -154,10 +155,10 @@ class DefaultRootComponent(
         data class SearchResults(val args: SearchArgs) : Config
 
         @Serializable
-        data class ListingDetail(val id: String) : Config
+        data class ListingDetail(val selection: RoomSelection) : Config
 
         @Serializable
-        data class BookingConfirmation(val id: String) : Config
+        data class BookingConfirmation(val args: BookingConfirmationArgs) : Config
 
         @Serializable
         data class BookingDetail(val id: String) : Config

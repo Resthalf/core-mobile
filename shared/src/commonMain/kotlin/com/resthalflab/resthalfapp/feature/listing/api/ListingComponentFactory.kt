@@ -9,14 +9,14 @@ import com.arkivanov.decompose.ComponentContext
 interface ListingComponentFactory {
     fun createDetail(
         componentContext: ComponentContext,
-        listingId: String,
+        selection: RoomSelection,
         onBack: () -> Unit,
-        onBook: () -> Unit,
+        onBooked: (BookingConfirmationArgs) -> Unit,
     ): ListingDetailComponent
 
     fun createBookingConfirmation(
         componentContext: ComponentContext,
-        listingId: String,
+        args: BookingConfirmationArgs,
         onBack: () -> Unit,
     ): BookingConfirmationComponent
 }

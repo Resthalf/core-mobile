@@ -44,7 +44,6 @@ interface MainComponent {
 class DefaultMainComponent(
     componentContext: ComponentContext,
     private val koin: Koin,
-    private val onOpenListing: (String) -> Unit,
     private val onOpenSearchResults: (SearchArgs) -> Unit,
     private val onOpenBookingDetail: (String) -> Unit,
 ) : MainComponent, ComponentContext by componentContext {

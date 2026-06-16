@@ -21,15 +21,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Bed
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.SquareFoot
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,53 +43,17 @@ import com.resthalflab.resthalfapp.core.design.RhSuccessContainer
 import com.resthalflab.resthalfapp.core.design.components.RhButton
 import com.resthalflab.resthalfapp.core.design.components.RhIllustrationPlaceholder
 import com.resthalflab.resthalfapp.core.design.components.RhInfoBanner
-import com.resthalflab.resthalfapp.core.design.components.RhRatingRow
 import com.resthalflab.resthalfapp.core.design.components.RhRemoteImage
 import com.resthalflab.resthalfapp.core.design.components.RhSectionLabel
 import com.resthalflab.resthalfapp.core.design.components.RhTag
-import com.resthalflab.resthalfapp.core.domain.formatMoney
-import com.resthalflab.resthalfapp.feature.listing.api.ListingDetail
 import com.resthalflab.resthalfapp.feature.listing.api.ListingDetailComponent
-import com.resthalflab.resthalfapp.feature.listing.api.ListingDetailComponent.State
 
 @Composable
 fun ListingDetailScreen(component: ListingDetailComponent) {
     val state by component.state.collectAsStateWithLifecycle()
 
-    when (val s = state) {
-        State.Loading -> WithBack(component::onBackClicked) { CircularProgressIndicator() }
-        is State.Error -> WithBack(component::onBackClicked) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(RhSpacing.md),
-            ) {
-                Text(s.message, color = MaterialTheme.colorScheme.error)
-                RhButton(text = "Retry", onClick = component::onRetry)
-            }
-        }
-        is State.Content -> DetailContent(s.detail, component::onBackClicked, component::onBookClicked)
-    }
-}
-
-@Composable
-private fun WithBack(onBack: () -> Unit, content: @Composable () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(RhSpacing.sm),
-        ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-        }
-        Box(modifier = Modifier.align(Alignment.Center)) { content() }
-    }
-}
-
-@Composable
-private fun DetailContent(detail: ListingDetail, onBack: () -> Unit, onBook: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-    ) {
-        Hero(photoUrls = detail.photoUrls, onBack = onBack)
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Hero(photoUrls = state.photoUrls, onBack = component::onBackClicked)
 
         Surface(
             modifier = Modifier.fillMaxWidth().offset(y = (-20).dp),
@@ -103,24 +62,25 @@ private fun DetailContent(detail: ListingDetail, onBack: () -> Unit, onBook: () 
         ) {
             Column(modifier = Modifier.padding(horizontal = RhSpacing.lg).navigationBarsPadding()) {
                 Spacer(Modifier.height(RhSpacing.lg))
-                Text(
-                    text = detail.name,
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-                Text(
-                    text = detail.city,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
 
-                Spacer(Modifier.height(RhSpacing.sm))
+                // Hotel title: name + city only.
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    RhRatingRow(rating = detail.rating, reviews = detail.reviewsCount, reviewWord = "reviews")
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = state.hotelName,
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                        Text(
+                            text = state.city,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     RhTag(
                         text = "Free cancellation",
                         containerColor = RhSuccessContainer,
@@ -128,32 +88,33 @@ private fun DetailContent(detail: ListingDetail, onBack: () -> Unit, onBook: () 
                     )
                 }
 
+                // Stay Window section — carried from the search choice.
                 Spacer(Modifier.height(RhSpacing.lg))
                 RhInfoBanner(
-                    title = "Stay Window (Fixed)",
-                    subtitle = "12:00 AM – 12:00 PM (12 hours)",
-                    caption = "Check-in at 12:00 AM, check-out by 12:00 PM",
+                    title = state.stayTitle,
+                    subtitle = state.stayWindowLine,
+                    caption = state.checkInOutLine,
                     leadingIcon = Icons.Outlined.Schedule,
                 )
 
+                // Room Type section — shows the picked room (number + id).
                 Spacer(Modifier.height(RhSpacing.lg))
                 RhSectionLabel("Room Type", uppercase = false)
                 Text(
-                    text = detail.roomType,
+                    text = "Room ${state.roomNumber}",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground,
                 )
-                Spacer(Modifier.height(RhSpacing.sm))
-                Row(horizontalArrangement = Arrangement.spacedBy(RhSpacing.lg)) {
-                    Attribute(Icons.Outlined.People, "${detail.guests} Guests")
-                    Attribute(Icons.Outlined.Bed, detail.bedType)
-                    Attribute(Icons.Outlined.SquareFoot, "${detail.areaSqm} m²")
-                }
+                Text(
+                    text = "ID: ${state.roomId}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
 
                 Spacer(Modifier.height(RhSpacing.lg))
                 RhSectionLabel("Cancellation Policy", uppercase = false)
                 Text(
-                    text = detail.cancellationPolicy,
+                    text = "Free cancellation before check-in time.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -168,9 +129,7 @@ private fun DetailContent(detail: ListingDetail, onBack: () -> Unit, onBook: () 
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Spacer(Modifier.height(RhSpacing.sm))
-                PriceRow("Room Price", formatMoney(detail.pricePerNight, detail.currency))
-                Spacer(Modifier.height(RhSpacing.xs))
-                PriceRow("Service Fee", formatMoney(detail.serviceFee, detail.currency))
+                PriceRow("Room Price", state.priceLabel)
                 Spacer(Modifier.height(RhSpacing.md))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -182,16 +141,22 @@ private fun DetailContent(detail: ListingDetail, onBack: () -> Unit, onBook: () 
                         color = MaterialTheme.colorScheme.onBackground,
                     )
                     Text(
-                        text = formatMoney(detail.totalPrice, detail.currency),
+                        text = state.priceLabel,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
 
+                state.error?.let {
+                    Spacer(Modifier.height(RhSpacing.sm))
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+
                 Spacer(Modifier.height(RhSpacing.xl))
                 RhButton(
-                    text = "Book Night Stay",
-                    onClick = onBook,
+                    text = state.bookButtonText,
+                    onClick = component::onBookClicked,
+                    loading = state.submitting,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(RhSpacing.lg))
@@ -232,7 +197,7 @@ private fun Hero(photoUrls: List<String>, onBack: () -> Unit) {
 
         if (photoUrls.isNotEmpty()) {
             Surface(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(RhSpacing.md,RhSpacing.xl),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(RhSpacing.md, RhSpacing.xl),
                 shape = RoundedCornerShape(50),
                 color = Color.Black.copy(alpha = 0.55f),
             ) {
@@ -263,15 +228,6 @@ private fun ScrimIconButton(
         Box(contentAlignment = Alignment.Center) {
             Icon(icon, contentDescription = contentDescription, tint = Color.White, modifier = Modifier.size(22.dp))
         }
-    }
-}
-
-@Composable
-private fun Attribute(icon: ImageVector, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.size(RhSpacing.xs))
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

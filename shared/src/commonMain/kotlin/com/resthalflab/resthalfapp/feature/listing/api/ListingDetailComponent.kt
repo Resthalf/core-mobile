@@ -3,14 +3,22 @@ package com.resthalflab.resthalfapp.feature.listing.api
 import kotlinx.coroutines.flow.StateFlow
 
 interface ListingDetailComponent {
-    val state: StateFlow<State>
+    val state: StateFlow<UiState>
     fun onBackClicked()
     fun onBookClicked()
-    fun onRetry()
 
-    sealed interface State {
-        data object Loading : State
-        data class Error(val message: String) : State
-        data class Content(val detail: ListingDetail) : State
-    }
+    data class UiState(
+        val hotelName: String,
+        val city: String,
+        val roomNumber: String,
+        val roomId: String,
+        val stayTitle: String,
+        val stayWindowLine: String,
+        val checkInOutLine: String,
+        val photoUrls: List<String>,
+        val priceLabel: String,
+        val bookButtonText: String,
+        val submitting: Boolean = false,
+        val error: String? = null,
+    )
 }
