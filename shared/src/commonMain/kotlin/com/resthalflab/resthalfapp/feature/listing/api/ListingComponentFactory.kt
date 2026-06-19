@@ -14,9 +14,19 @@ interface ListingComponentFactory {
         onBooked: (BookingConfirmationArgs) -> Unit,
     ): ListingDetailComponent
 
+    fun createPayment(
+        componentContext: ComponentContext,
+        args: BookingConfirmationArgs,
+        onPaid: () -> Unit,
+        onBack: () -> Unit,
+    ): PaymentComponent
+
     fun createBookingConfirmation(
         componentContext: ComponentContext,
         args: BookingConfirmationArgs,
+        paid: Boolean,
         onBack: () -> Unit,
+        onProceedToPayment: () -> Unit,
+        onViewDetails: () -> Unit,
     ): BookingConfirmationComponent
 }

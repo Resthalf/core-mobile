@@ -85,53 +85,78 @@ private fun Content(confirmation: BookingConfirmation, component: BookingConfirm
             .padding(horizontal = RhSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        val paid = confirmation.paid
+
         Spacer(Modifier.height(RhSpacing.sm))
         Box(
-            modifier = Modifier.size(64.dp).background(RhSuccess, CircleShape),
+            modifier = Modifier.size(64.dp).background(
+                color = if (paid) RhSuccess else RhWarningContainer,
+                shape = CircleShape,
+            ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+            Icon(
+                imageVector = if (paid) Icons.Filled.Check else Icons.Outlined.Schedule,
+                contentDescription = null,
+                tint = if (paid) Color.White else RhOnWarningContainer,
+                modifier = Modifier.size(36.dp),
+            )
         }
 
         Spacer(Modifier.height(RhSpacing.lg))
         Text(
-            text = "Booking Confirmed!",
+            text = if (paid) "Booking Success" else "Booking Created",
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onBackground,
         )
         Text(
-            text = "Your night stay is reserved.",
+            text = if (paid) {
+                "Your room at ${confirmation.hotelName} is booked."
+            } else {
+                "Your stay is ready, please complete the payment."
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
 
         Spacer(Modifier.height(RhSpacing.lg))
         DetailsCard(confirmation)
 
-        Spacer(Modifier.height(RhSpacing.lg))
-        RhInfoBanner(
-            subtitle = "Your room is reserved until 12:00 PM. Please complete payment to confirm your booking.",
-            leadingIcon = Icons.Outlined.Schedule,
-            containerColor = RhWarningContainer,
-            contentColor = RhOnWarningContainer,
-            iconTint = RhOnWarningContainer,
-        )
+        if (!paid) {
+            Spacer(Modifier.height(RhSpacing.lg))
+            RhInfoBanner(
+                subtitle = "Your room is held briefly. Complete payment to confirm your booking.",
+                leadingIcon = Icons.Outlined.Schedule,
+                containerColor = RhWarningContainer,
+                contentColor = RhOnWarningContainer,
+                iconTint = RhOnWarningContainer,
+            )
+        }
 
         Spacer(Modifier.height(RhSpacing.xl))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(RhSpacing.md),
-        ) {
-            RhOutlinedButton(
+        if (paid) {
+            RhButton(
                 text = "View Details",
                 onClick = component::onViewDetails,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
             )
-            RhButton(
-                text = "Proceed to Payment",
-                onClick = component::onProceedToPayment,
-                modifier = Modifier.weight(1.5f),
-            )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(RhSpacing.md),
+            ) {
+                RhOutlinedButton(
+                    text = "View Details",
+                    onClick = component::onViewDetails,
+                    modifier = Modifier.weight(1f),
+                )
+                RhButton(
+                    text = "Proceed to Payment",
+                    onClick = component::onProceedToPayment,
+                    modifier = Modifier.weight(1.5f),
+                )
+            }
         }
         Spacer(Modifier.height(RhSpacing.lg))
     }
@@ -168,7 +193,11 @@ private fun DetailsCard(confirmation: BookingConfirmation) {
         DetailRow("Date", confirmation.dateLabel)
         DetailRow("Stay Window", confirmation.stayWindow)
         DetailRow("Guests", confirmation.guestsLabel)
-        DetailRow("Total Paid", confirmation.totalPaid, valueColor = MaterialTheme.colorScheme.primary)
+        DetailRow(
+            label = if (confirmation.paid) "Total Paid" else "Total",
+            value = confirmation.totalPaid,
+            valueColor = MaterialTheme.colorScheme.primary,
+        )
     }
 }
 

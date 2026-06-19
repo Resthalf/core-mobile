@@ -29,11 +29,13 @@ interface BookingsComponent {
     val state: StateFlow<UiState>
     fun onTabSelected(index: Int)
     fun onBookingClicked(id: String)
+    fun onRefresh()
 
     data class UiState(
         val selectedTabIndex: Int = 0,
         val allBookings: List<Booking> = emptyList(),
         val loading: Boolean = false,
+        val refreshing: Boolean = false,
         val error: String? = null,
     ) {
         val visibleBookings: List<Booking> get() = when (BookingTab.entries[selectedTabIndex]) {
@@ -57,10 +59,19 @@ class DefaultBookingsComponent(
     override val state: StateFlow<BookingsComponent.UiState> = _state.asStateFlow()
 
     init {
+        load(initial = true)
+    }
+
+    override fun onRefresh() = load(initial = false)
+
+    private fun load(initial: Boolean) {
         scope.launch {
+            _state.update { it.copy(loading = initial, refreshing = !initial, error = null) }
             when (val result = getBookings()) {
-                is AppResult.Success -> _state.update { it.copy(loading = false, allBookings = result.value) }
-                is AppResult.Failure -> _state.update { it.copy(loading = false, error = result.error.message) }
+                is AppResult.Success ->
+                    _state.update { it.copy(loading = false, refreshing = false, allBookings = result.value) }
+                is AppResult.Failure ->
+                    _state.update { it.copy(loading = false, refreshing = false, error = result.error.message) }
             }
         }
     }

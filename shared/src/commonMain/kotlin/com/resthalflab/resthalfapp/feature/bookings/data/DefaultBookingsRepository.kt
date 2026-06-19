@@ -1,145 +1,60 @@
 package com.resthalflab.resthalfapp.feature.bookings.data
 
+import com.resthalflab.resthalfapp.core.domain.AppError
 import com.resthalflab.resthalfapp.core.domain.AppResult
+import com.resthalflab.resthalfapp.core.network.safeApiCall
+import com.resthalflab.resthalfapp.feature.bookings.data.dto.BookingDto
+import com.resthalflab.resthalfapp.feature.bookings.domain.BookingTime
 import com.resthalflab.resthalfapp.feature.bookings.domain.BookingsRepository
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.BookingStatus
-import kotlinx.coroutines.delay
 
-// Phase 3 stub. Replace with real API calls.
-class DefaultBookingsRepository : BookingsRepository {
-    override suspend fun getBookings(): AppResult<List<Booking>> {
-        delay(300)
-        return AppResult.Success(stub)
+class DefaultBookingsRepository(
+    private val remote: BookingsRemote,
+) : BookingsRepository {
+
+    override suspend fun getBookings(): AppResult<List<Booking>> = safeApiCall {
+        remote.getMyBookings().direct.map { it.toDomain() }
     }
 
-    override suspend fun getBookingById(id: String): AppResult<Booking> {
-        delay(100)
-        return stub.find { it.id == id }
-            ?.let { AppResult.Success(it) }
-            ?: AppResult.Failure(com.resthalflab.resthalfapp.core.domain.AppError.Unknown("Booking not found"))
+    override suspend fun getBookingById(id: String): AppResult<Booking> =
+        when (val result = safeApiCall { remote.getMyBookings() }) {
+            is AppResult.Success ->
+                result.value.direct.firstOrNull { it.id == id }?.toDomain()
+                    ?.let { AppResult.Success(it) }
+                    ?: AppResult.Failure(AppError.Unknown("Booking not found"))
+            is AppResult.Failure -> result
+        }
+
+    private fun BookingDto.toDomain(): Booking {
+        // Status: PENDING from the booking status field (payment incomplete); otherwise Active when a
+        // delegation exists, else Completed. (Cancelled/Overstayed not derivable yet.)
+        val bookingStatus = when {
+            status?.uppercase() == "PENDING" -> BookingStatus.Pending
+            delegation != null -> BookingStatus.Active
+            else -> BookingStatus.Completed
+        }
+        val windowStart = delegation?.startTime ?: startTime
+        val windowEnd = delegation?.endTime ?: endTime
+        return Booking(
+            id = id,
+            bookingCode = midtransOrderId ?: id,
+            hotelName = room?.hotel?.name ?: "Hotel",
+            city = room?.hotel?.city.orEmpty(),
+            dateLabel = BookingTime.formatDate(windowStart),
+            stayWindow = "${BookingTime.formatClock12h(windowStart)} – ${BookingTime.formatClock12h(windowEnd)}",
+            totalPrice = totalPrice.toAmount(),
+            currency = currency,
+            status = bookingStatus,
+            thumbnailUrl = null,
+            roomNumber = room?.roomNumber ?: "—",
+            slotType = slotType,
+            startTime = windowStart,
+            endTime = windowEnd,
+        )
     }
 
-    private val stub = listOf(
-        Booking(
-            id = "0",
-            bookingCode = "RH2405241234",
-            hotelName = "Amaris Hotel Thamrin",
-            city = "Jakarta",
-            dateLabel = "24 May 2024",
-            stayWindow = "12:00 AM – 12:00 PM",
-            totalPrice = 260_000,
-            currency = "IDR",
-            status = BookingStatus.Active,
-            thumbnailUrl = "https://picsum.photos/seed/aria_1/300/200",
-        ),
-        Booking(
-            id = "1",
-            bookingCode = "RH2405241234",
-            hotelName = "Amaris Hotel Thamrin",
-            city = "Jakarta",
-            dateLabel = "24 May 2024",
-            stayWindow = "12:00 AM – 12:00 PM",
-            totalPrice = 260_000,
-            currency = "IDR",
-            status = BookingStatus.Completed,
-            thumbnailUrl = "https://picsum.photos/seed/aria_1/300/200",
-        ),
-        Booking(
-            id = "2",
-            bookingCode = "RH1005240987",
-            hotelName = "Yello Hotel Harmoni",
-            city = "Jakarta",
-            dateLabel = "10 May 2024",
-            stayWindow = "12:00 AM – 12:00 PM",
-            totalPrice = 220_000,
-            currency = "IDR",
-            status = BookingStatus.Completed,
-            thumbnailUrl = "https://picsum.photos/seed/mawar_1/300/200",
-        ),
-        Booking(
-            id = "3",
-            bookingCode = "RH0205240771",
-            hotelName = "favehotel LTC Glodok",
-            city = "Jakarta",
-            dateLabel = "02 May 2024",
-            stayWindow = "12:00 AM – 12:00 PM",
-            totalPrice = 180_000,
-            currency = "IDR",
-            status = BookingStatus.Cancelled,
-            thumbnailUrl = "https://picsum.photos/seed/samudra_1/300/200",
-        ),
-        Booking(
-            id = "4",
-            bookingCode = "RH2804240660",
-            hotelName = "G Suites Hotel",
-            city = "Jakarta",
-            dateLabel = "28 Apr 2024",
-            stayWindow = "12:00 AM – 12:00 PM",
-            totalPrice = 300_000,
-            currency = "IDR",
-            status = BookingStatus.Overstayed,
-            thumbnailUrl = "https://picsum.photos/seed/rinjani_1/300/200",
-        ),
-        Booking(
-            id = "5",
-            bookingCode = "RH2804240660",
-            hotelName = "Marriot Hotel",
-            city = "Jakarta",
-            dateLabel = "28 Apr 2024",
-            stayWindow = "12:00 AM – 12:00 PM",
-            totalPrice = 300_000,
-            currency = "IDR",
-            status = BookingStatus.Active,
-            thumbnailUrl = "https://picsum.photos/seed/rinjani_1/300/200",
-        ),
-        Booking(
-            id = "6",
-            bookingCode = "RH2804240660",
-            hotelName = "Aston Inn Yogyakarta",
-            city = "Yogyakarta",
-            dateLabel = "28 Apr 2024",
-            stayWindow = "12:00 AM – 12:00 PM",
-            totalPrice = 300_000,
-            currency = "IDR",
-            status = BookingStatus.Active,
-            thumbnailUrl = "https://picsum.photos/seed/rinjani_1/300/200",
-        ),
-        Booking(
-            id = "7",
-            bookingCode = "RH2804240660",
-            hotelName = "G Suites Hotel",
-            city = "Jakarta",
-            dateLabel = "28 Apr 2024",
-            stayWindow = "12:00 AM – 12:00 PM",
-            totalPrice = 300_000,
-            currency = "IDR",
-            status = BookingStatus.Overstayed,
-            thumbnailUrl = "https://picsum.photos/seed/rinjani_1/300/200",
-        ),
-        Booking(
-            id = "8",
-            bookingCode = "RH2804240660",
-            hotelName = "G Suites Hotel",
-            city = "Jakarta",
-            dateLabel = "28 Apr 2024",
-            stayWindow = "12:00 AM – 12:00 PM",
-            totalPrice = 300_000,
-            currency = "IDR",
-            status = BookingStatus.Overstayed,
-            thumbnailUrl = "https://picsum.photos/seed/rinjani_1/300/200",
-        ),
-        Booking(
-            id = "9",
-            bookingCode = "RH2804240660",
-            hotelName = "G Suites Hotel",
-            city = "Jakarta",
-            dateLabel = "28 Apr 2024",
-            stayWindow = "12:00 AM – 12:00 PM",
-            totalPrice = 300_000,
-            currency = "IDR",
-            status = BookingStatus.Overstayed,
-            thumbnailUrl = "https://picsum.photos/seed/rinjani_1/300/200",
-        ),
-    )
+    // "250000.00" -> 250000
+    private fun String.toAmount(): Int =
+        substringBefore('.').toIntOrNull() ?: toDoubleOrNull()?.toInt() ?: 0
 }

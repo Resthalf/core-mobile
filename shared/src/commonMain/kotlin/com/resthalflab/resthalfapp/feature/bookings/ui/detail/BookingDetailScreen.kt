@@ -112,6 +112,16 @@ private fun Content(state: BookingDetailComponent.State.Content, component: Book
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(RhSpacing.md))
             ImportantBanner()
+
+            if (booking.status == BookingStatus.Pending) {
+                Spacer(Modifier.height(RhSpacing.lg))
+                RhButton(
+                    text = "Proceed to Payment",
+                    onClick = component::onProceedToPayment,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = RhSpacing.lg),
+                )
+            }
+
             Spacer(Modifier.height(RhSpacing.lg))
         }
     }
@@ -278,7 +288,7 @@ private fun HotelSection(booking: Booking) {
             Spacer(Modifier.height(RhSpacing.sm))
             Row(horizontalArrangement = Arrangement.spacedBy(RhSpacing.xl)) {
                 InfoPair(label = "Booking ID", value = booking.bookingCode)
-                InfoPair(label = "Room", value = "Smart Room Only")
+                InfoPair(label = "Room", value = "Room ${booking.roomNumber}")
             }
         }
     }
@@ -345,6 +355,7 @@ private fun ImportantBanner() {
 // ── Status helpers ────────────────────────────────────────────────────────────
 
 private val BookingStatus.screenTitle: String get() = when (this) {
+    BookingStatus.Pending -> "Pending Payment"
     BookingStatus.Active -> "Active Stay"
     BookingStatus.Completed -> "Completed Stay"
     BookingStatus.Cancelled -> "Cancelled Booking"
@@ -352,6 +363,7 @@ private val BookingStatus.screenTitle: String get() = when (this) {
 }
 
 private val BookingStatus.tagLabel: String get() = when (this) {
+    BookingStatus.Pending -> "PENDING"
     BookingStatus.Active -> "ACTIVE"
     BookingStatus.Completed -> "COMPLETED"
     BookingStatus.Cancelled -> "CANCELLED"
@@ -359,6 +371,7 @@ private val BookingStatus.tagLabel: String get() = when (this) {
 }
 
 private val BookingStatus.tagBg: Color get() = when (this) {
+    BookingStatus.Pending -> Color(0xFFFFE8CC)
     BookingStatus.Active -> RhSuccessContainer
     BookingStatus.Completed -> RhSuccessContainer
     BookingStatus.Cancelled -> Color(0xFFFFE0E0)
@@ -366,6 +379,7 @@ private val BookingStatus.tagBg: Color get() = when (this) {
 }
 
 private val BookingStatus.tagFg: Color get() = when (this) {
+    BookingStatus.Pending -> Color(0xFF9A5B00)
     BookingStatus.Active -> RhOnSuccessContainer
     BookingStatus.Completed -> RhOnSuccessContainer
     BookingStatus.Cancelled -> Color(0xFFB71C1C)

@@ -3,6 +3,7 @@ package com.resthalflab.resthalfapp.feature.bookings.ui.detail
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.resthalflab.resthalfapp.core.domain.AppResult
+import com.resthalflab.resthalfapp.feature.bookings.domain.BookingTime
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingByIdUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.BookingStatus
@@ -13,17 +14,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
-import kotlin.time.Clock
 
 interface BookingDetailComponent {
     val state: StateFlow<State>
     fun onBackClicked()
     fun onRetry()
+    fun onProceedToPayment()
     fun onHotelInfoClicked()
     fun onCallHotelClicked()
     fun onWhatsAppClicked()
@@ -37,7 +33,7 @@ interface BookingDetailComponent {
             val hoursLeft: Int,
             val minutesLeft: Int,
             val secondsLeft: Int,
-            /** 0.0 = just checked in, 1.0 = checkout time reached. */
+            /** 0.0 = just checked in, 1.0 = checkout reached. */
             val checkoutProgress: Float,
         ) : State
     }
@@ -48,16 +44,20 @@ class DefaultBookingDetailComponent(
     private val getBookingById: GetBookingByIdUseCase,
     private val bookingId: String,
     private val onBack: () -> Unit,
+    private val onPay: (Booking) -> Unit = {},
 ) : BookingDetailComponent, ComponentContext by componentContext {
 
     private val scope = coroutineScope(Dispatchers.Main)
     private val _state = MutableStateFlow<BookingDetailComponent.State>(BookingDetailComponent.State.Loading)
     override val state: StateFlow<BookingDetailComponent.State> = _state.asStateFlow()
 
+    private var loadedBooking: Booking? = null
+
     init { load() }
 
     override fun onRetry() = load()
     override fun onBackClicked() = onBack()
+    override fun onProceedToPayment() { loadedBooking?.let(onPay) }
     override fun onHotelInfoClicked() {}
     override fun onCallHotelClicked() {}
     override fun onWhatsAppClicked() {}
@@ -67,58 +67,32 @@ class DefaultBookingDetailComponent(
         scope.launch {
             _state.value = BookingDetailComponent.State.Loading
             when (val result = getBookingById(bookingId)) {
-                is AppResult.Success -> startTicker(result.value)
+                is AppResult.Success -> {
+                    loadedBooking = result.value
+                    startTicker(result.value)
+                }
                 is AppResult.Failure -> _state.value = BookingDetailComponent.State.Error(result.error.message)
             }
         }
     }
 
+    // Counts down to the booking's endTime (delegation window for active stays). For non-active
+    // bookings the window is already in the past, so the timer naturally reads 0 / progress 1.
     private fun startTicker(booking: Booking) {
+        val ticking = booking.status == BookingStatus.Active
         scope.launch {
             while (isActive) {
+                val (h, m, s) = BookingTime.parts(booking.endTime)
                 _state.value = BookingDetailComponent.State.Content(
                     booking = booking,
-                    hoursLeft = computeHours(booking),
-                    minutesLeft = computeMinutes(booking),
-                    secondsLeft = computeSeconds(booking),
-                    checkoutProgress = computeProgress(booking),
+                    hoursLeft = h,
+                    minutesLeft = m,
+                    secondsLeft = s,
+                    checkoutProgress = BookingTime.progress(booking.startTime, booking.endTime),
                 )
+                if (!ticking) break
                 delay(1_000)
             }
         }
-    }
-
-    // ── Countdown helpers ─────────────────────────────────────────────────────
-    // For Active bookings: counts down to 12:00 PM today.
-    // For all other statuses: seconds/minutes/hours are pinned to 0 (stay is over).
-
-    private fun secondsUntilCheckout(booking: Booking): Long {
-        if (booking.status != BookingStatus.Active) return 0L
-        val now = Clock.System.now()
-        val tz = TimeZone.currentSystemDefault()
-        val local = now.toLocalDateTime(tz)
-        // Target: 12:00:00 today. If already past noon pin to 0.
-        val todayNoon = LocalDateTime(
-            year = local.year,
-            monthNumber = local.monthNumber,
-            dayOfMonth = local.dayOfMonth,
-            hour = 12,
-            minute = 0,
-            second = 0,
-            nanosecond = 0,
-        )
-        val targetInstant = todayNoon.toInstant(tz)
-        return maxOf(0L, (targetInstant - now).inWholeSeconds)
-    }
-
-    private fun computeHours(booking: Booking): Int = (secondsUntilCheckout(booking) / 3600).toInt()
-    private fun computeMinutes(booking: Booking): Int = ((secondsUntilCheckout(booking) % 3600) / 60).toInt()
-    private fun computeSeconds(booking: Booking): Int = (secondsUntilCheckout(booking) % 60).toInt()
-
-    private fun computeProgress(booking: Booking): Float {
-        if (booking.status != BookingStatus.Active) return 1f
-        val totalSeconds = 12 * 3600f
-        val remainingSeconds = secondsUntilCheckout(booking).toFloat()
-        return 1f - (remainingSeconds / totalSeconds).coerceIn(0f, 1f)
     }
 }

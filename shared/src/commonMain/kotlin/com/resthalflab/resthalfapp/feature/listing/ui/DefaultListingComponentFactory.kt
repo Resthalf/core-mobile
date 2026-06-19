@@ -5,11 +5,14 @@ import com.resthalflab.resthalfapp.feature.listing.api.BookingConfirmationArgs
 import com.resthalflab.resthalfapp.feature.listing.api.BookingConfirmationComponent
 import com.resthalflab.resthalfapp.feature.listing.api.ListingComponentFactory
 import com.resthalflab.resthalfapp.feature.listing.api.ListingDetailComponent
+import com.resthalflab.resthalfapp.feature.listing.api.PaymentComponent
 import com.resthalflab.resthalfapp.feature.listing.api.RoomSelection
 import com.resthalflab.resthalfapp.feature.listing.domain.CreateBookingUseCase
+import com.resthalflab.resthalfapp.feature.listing.domain.SimulatePaymentUseCase
 
 class DefaultListingComponentFactory(
     private val createBooking: CreateBookingUseCase,
+    private val simulatePayment: SimulatePaymentUseCase,
 ) : ListingComponentFactory {
     override fun createDetail(
         componentContext: ComponentContext,
@@ -24,13 +27,32 @@ class DefaultListingComponentFactory(
         onBooked = onBooked,
     )
 
+    override fun createPayment(
+        componentContext: ComponentContext,
+        args: BookingConfirmationArgs,
+        onPaid: () -> Unit,
+        onBack: () -> Unit,
+    ): PaymentComponent = DefaultPaymentComponent(
+        componentContext = componentContext,
+        args = args,
+        simulatePayment = simulatePayment,
+        onPaid = onPaid,
+        onBack = onBack,
+    )
+
     override fun createBookingConfirmation(
         componentContext: ComponentContext,
         args: BookingConfirmationArgs,
+        paid: Boolean,
         onBack: () -> Unit,
+        onProceedToPayment: () -> Unit,
+        onViewDetails: () -> Unit,
     ): BookingConfirmationComponent = DefaultBookingConfirmationComponent(
         componentContext = componentContext,
         args = args,
+        paid = paid,
         onBack = onBack,
+        proceedToPayment = onProceedToPayment,
+        viewDetails = onViewDetails,
     )
 }

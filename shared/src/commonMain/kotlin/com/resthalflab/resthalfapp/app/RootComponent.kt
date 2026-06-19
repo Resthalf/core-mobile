@@ -15,12 +15,14 @@ import com.resthalflab.resthalfapp.feature.auth.registerComponent
 import com.resthalflab.resthalfapp.feature.auth.ui.login.LoginComponent
 import com.resthalflab.resthalfapp.feature.auth.ui.register.RegisterComponent
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingByIdUseCase
+import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.BookingDetailComponent
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.DefaultBookingDetailComponent
 import com.resthalflab.resthalfapp.feature.listing.api.BookingConfirmationArgs
 import com.resthalflab.resthalfapp.feature.listing.api.BookingConfirmationComponent
 import com.resthalflab.resthalfapp.feature.listing.api.ListingComponentFactory
 import com.resthalflab.resthalfapp.feature.listing.api.ListingDetailComponent
+import com.resthalflab.resthalfapp.feature.listing.api.PaymentComponent
 import com.resthalflab.resthalfapp.feature.listing.api.RoomSelection
 import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
 import com.resthalflab.resthalfapp.feature.search.domain.SearchHotelsUseCase
@@ -41,6 +43,7 @@ interface RootComponent {
         data class Main(val component: MainComponent) : Child
         data class SearchResults(val component: ResultsComponent) : Child
         data class ListingDetail(val component: ListingDetailComponent) : Child
+        data class Payment(val component: PaymentComponent) : Child
         data class BookingConfirmation(val component: BookingConfirmationComponent) : Child
         data class BookingDetail(val component: BookingDetailComponent) : Child
     }
@@ -118,7 +121,23 @@ class DefaultRootComponent(
                     componentContext = context,
                     selection = config.selection,
                     onBack = { navigation.pop() },
-                    onBooked = { args -> navigation.push(Config.BookingConfirmation(args)) },
+                    // Booking created → show the "Booking Created" confirmation first.
+                    onBooked = { args -> navigation.push(Config.BookingConfirmation(args, paid = false)) },
+                )
+            )
+
+            is Config.Payment -> RootComponent.Child.Payment(
+                koin.get<ListingComponentFactory>().createPayment(
+                    componentContext = context,
+                    args = config.args,
+                    // After settlement, reset to the tab shell + the paid confirmation (drops the
+                    // payment / created-confirmation / listing-detail / pending booking-detail).
+                    onPaid = {
+                        navigation.navigate { stack ->
+                            stackUpToMain(stack) + Config.BookingConfirmation(config.args, paid = true)
+                        }
+                    },
+                    onBack = { navigation.pop() },
                 )
             )
 
@@ -126,7 +145,16 @@ class DefaultRootComponent(
                 koin.get<ListingComponentFactory>().createBookingConfirmation(
                     componentContext = context,
                     args = config.args,
+                    paid = config.paid,
                     onBack = { navigation.pop() },
+                    onProceedToPayment = { navigation.push(Config.Payment(config.args)) },
+                    // Reset to the tab shell + the booking detail so we never duplicate a
+                    // BookingDetail already on the stack (Decompose requires unique configs).
+                    onViewDetails = {
+                        navigation.navigate { stack ->
+                            stackUpToMain(stack) + Config.BookingDetail(config.args.bookingId)
+                        }
+                    },
                 )
             )
 
@@ -136,9 +164,16 @@ class DefaultRootComponent(
                     getBookingById = koin.get<GetBookingByIdUseCase>(),
                     bookingId = config.id,
                     onBack = { navigation.pop() },
+                    onPay = { booking -> navigation.push(Config.Payment(booking.toConfirmationArgs())) },
                 )
             )
         }
+
+    /** Everything up to and including the authenticated [Config.Main] shell — used to reset deep stacks. */
+    private fun stackUpToMain(stack: List<Config>): List<Config> {
+        val mainIndex = stack.indexOfFirst { it is Config.Main }
+        return if (mainIndex >= 0) stack.take(mainIndex + 1) else listOf(Config.Main)
+    }
 
     @Serializable
     private sealed interface Config {
@@ -158,9 +193,24 @@ class DefaultRootComponent(
         data class ListingDetail(val selection: RoomSelection) : Config
 
         @Serializable
-        data class BookingConfirmation(val args: BookingConfirmationArgs) : Config
+        data class Payment(val args: BookingConfirmationArgs) : Config
+
+        @Serializable
+        data class BookingConfirmation(val args: BookingConfirmationArgs, val paid: Boolean) : Config
 
         @Serializable
         data class BookingDetail(val id: String) : Config
     }
 }
+
+// Build the payment/confirmation args from an existing (Pending) booking so the detail screen can
+// re-enter the same payment flow.
+private fun Booking.toConfirmationArgs(): BookingConfirmationArgs = BookingConfirmationArgs(
+    bookingId = id,
+    orderId = bookingCode,
+    hotelName = hotelName,
+    roomNumber = roomNumber,
+    slotType = slotType,
+    amount = totalPrice,
+    currency = currency,
+)

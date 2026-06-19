@@ -8,4 +8,6 @@ data class BookingConfirmation(
     val stayWindow: String,
     val guestsLabel: String,
     val totalPaid: String,
+    /** false = created/awaiting payment, true = payment settled. */
+    val paid: Boolean,
 )

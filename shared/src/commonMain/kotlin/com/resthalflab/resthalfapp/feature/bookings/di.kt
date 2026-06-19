@@ -1,6 +1,7 @@
 package com.resthalflab.resthalfapp.feature.bookings
 
 import com.arkivanov.decompose.ComponentContext
+import com.resthalflab.resthalfapp.feature.bookings.data.BookingsRemote
 import com.resthalflab.resthalfapp.feature.bookings.data.DefaultBookingsRepository
 import com.resthalflab.resthalfapp.feature.bookings.domain.BookingsRepository
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingByIdUseCase
@@ -12,7 +13,8 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 val bookingsModule: Module = module {
-    single<BookingsRepository> { DefaultBookingsRepository() }
+    single { BookingsRemote(get()) }
+    single<BookingsRepository> { DefaultBookingsRepository(get()) }
     factory { GetBookingsUseCase(get()) }
     factory { GetBookingByIdUseCase(get()) }
 }

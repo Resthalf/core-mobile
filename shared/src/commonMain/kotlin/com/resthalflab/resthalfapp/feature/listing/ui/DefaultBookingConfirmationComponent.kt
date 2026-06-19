@@ -17,7 +17,10 @@ import kotlin.time.Clock
 class DefaultBookingConfirmationComponent(
     componentContext: ComponentContext,
     private val args: BookingConfirmationArgs,
+    private val paid: Boolean,
     private val onBack: () -> Unit,
+    private val proceedToPayment: () -> Unit,
+    private val viewDetails: () -> Unit,
 ) : BookingConfirmationComponent, ComponentContext by componentContext {
 
     private val _state = MutableStateFlow<State>(State.Content(buildConfirmation()))
@@ -34,11 +37,12 @@ class DefaultBookingConfirmationComponent(
             stayWindow = "${SlotDisplay.title(args.slotType)} · ${SlotDisplay.windowShort(args.slotType)}",
             guestsLabel = "1 Adult",
             totalPaid = formatMoney(args.amount, args.currency),
+            paid = paid,
         )
     }
 
     override fun onRetry() { /* nothing to retry — built from args */ }
     override fun onBackClicked() = onBack()
-    override fun onViewDetails() = onBack()
-    override fun onProceedToPayment() { /* TODO Phase 3: payment flow */ }
+    override fun onViewDetails() = viewDetails()
+    override fun onProceedToPayment() = proceedToPayment()
 }

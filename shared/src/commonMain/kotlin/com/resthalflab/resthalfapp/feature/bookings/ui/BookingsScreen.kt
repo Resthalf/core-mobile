@@ -20,11 +20,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -33,6 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.resthalflab.resthalfapp.core.design.RhOnSuccessContainer
@@ -51,7 +55,10 @@ import com.resthalflab.resthalfapp.feature.bookings.domain.model.BookingStatus
 
 private val CancelledTagBg = Color(0xFFFFE0E0)
 private val CancelledTagText = Color(0xFFB71C1C)
+private val PendingTagBg = Color(0xFFFFE8CC)
+private val PendingTagText = Color(0xFF9A5B00)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingsScreen(component: BookingsComponent) {
     val state by component.state.collectAsStateWithLifecycle()
@@ -79,20 +86,32 @@ fun BookingsScreen(component: BookingsComponent) {
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 48.dp),
                 )
-                state.visibleBookings.isEmpty() -> Text(
-                    text = "No bookings in this category",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 48.dp),
-                )
-                else -> LazyColumn(
-                    state = listState,
+                else -> PullToRefreshBox(
+                    isRefreshing = state.refreshing,
+                    onRefresh = component::onRefresh,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = RhSpacing.xl),
                 ) {
-                    items(state.visibleBookings, key = { it.id }) { booking ->
-                        BookingRow(booking) { component.onBookingClicked(booking.id) }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = RhSpacing.xl),
+                    ) {
+                        if (state.visibleBookings.isEmpty()) {
+                            item {
+                                Text(
+                                    text = "No bookings in this category",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(top = 48.dp),
+                                )
+                            }
+                        } else {
+                            items(state.visibleBookings, key = { it.id }) { booking ->
+                                BookingRow(booking) { component.onBookingClicked(booking.id) }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            }
+                        }
                     }
                 }
             }
@@ -136,12 +155,12 @@ private fun BookingRow(booking: Booking, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = RhSpacing.lg, vertical = RhSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
-        // Thumbnail
+        // Thumbnail spans the full row height.
         Surface(
-            modifier = Modifier.size(width = 80.dp, height = 64.dp),
-            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.size(width = 88.dp, height = 100.dp),
+            shape = RoundedCornerShape(10.dp),
             color = MaterialTheme.colorScheme.surfaceVariant,
         ) {
             RhIllustrationPlaceholder(modifier = Modifier.fillMaxSize())
@@ -149,72 +168,90 @@ private fun BookingRow(booking: Booking, onClick: () -> Unit) {
 
         Spacer(Modifier.width(RhSpacing.md))
 
-        // Middle: hotel info
         Column(modifier = Modifier.weight(1f)) {
+            // Title block: name (up to 2 lines) + city, spanning the full content width.
             Text(
                 text = booking.hotelName,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = booking.city,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = booking.dateLabel,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = booking.stayWindow,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(RhSpacing.xs))
-            RhTag(
-                text = booking.status.label,
-                containerColor = booking.status.containerColor,
-                contentColor = booking.status.contentColor,
-            )
-        }
 
-        Spacer(Modifier.width(RhSpacing.sm))
+            Spacer(Modifier.height(RhSpacing.sm))
 
-        // Right: price + booking ID + chevron
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = formatMoney(booking.totalPrice, booking.currency),
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = "Booking ID",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = booking.bookingCode,
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            // Detail block: stay info (left) and price/booking-id (right).
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = booking.dateLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = booking.stayWindow,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(RhSpacing.xs))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RhTag(
+                            text = booking.status.label,
+                            containerColor = booking.status.containerColor,
+                            contentColor = booking.status.contentColor,
+                        )
+                        if (booking.status == BookingStatus.Active) {
+                            Spacer(Modifier.width(RhSpacing.sm))
+                            Text(
+                                text = rememberRemainingLabel(booking.endTime),
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.width(RhSpacing.sm))
+
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = formatMoney(booking.totalPrice, booking.currency),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "Booking ID",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = booking.bookingCode,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
 
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 4.dp).size(20.dp),
+            modifier = Modifier.padding(start = RhSpacing.xs, top = RhSpacing.xl).size(20.dp),
         )
     }
 }
 
 // Helpers that keep the color logic out of the screen.
 private val BookingStatus.label: String get() = when (this) {
+    BookingStatus.Pending -> "Pending payment"
     BookingStatus.Active -> "Active"
     BookingStatus.Completed -> "Completed"
     BookingStatus.Cancelled -> "Cancelled"
@@ -222,6 +259,7 @@ private val BookingStatus.label: String get() = when (this) {
 }
 
 private val BookingStatus.containerColor: Color get() = when (this) {
+    BookingStatus.Pending -> PendingTagBg
     BookingStatus.Active -> onPrimaryContainer
     BookingStatus.Completed -> RhSuccessContainer
     BookingStatus.Cancelled -> CancelledTagBg
@@ -229,6 +267,7 @@ private val BookingStatus.containerColor: Color get() = when (this) {
 }
 
 private val BookingStatus.contentColor: Color get() = when (this) {
+    BookingStatus.Pending -> PendingTagText
     BookingStatus.Active -> RhStarGold
     BookingStatus.Completed -> RhOnSuccessContainer
     BookingStatus.Cancelled -> CancelledTagText
