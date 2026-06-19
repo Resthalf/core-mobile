@@ -1,5 +1,7 @@
 package com.resthalflab.resthalfapp.feature.bookings.domain
 
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -20,11 +22,32 @@ object BookingTime {
     }
 
     /** "2:40 AM" */
-    fun formatClock12h(iso: String): String {
-        val t = parse(iso)?.toLocalDateTime(tz) ?: return ""
+    fun formatClock12h(iso: String): String =
+        parse(iso)?.toLocalDateTime(tz)?.let(::clock12) ?: ""
+
+    /**
+     * Local window for the booking list, e.g. "2:40 AM – 2:40 PM" (same day) or
+     * "12:00 PM – 17 Jun, 12:00 PM" when the stay crosses midnight (full-day).
+     */
+    fun formatWindow(startIso: String, endIso: String): String {
+        val start = parse(startIso)?.toLocalDateTime(tz) ?: return ""
+        val end = parse(endIso)?.toLocalDateTime(tz) ?: return ""
+        return if (start.date == end.date) {
+            "${clock12(start)} – ${clock12(end)}"
+        } else {
+            "${clock12(start)} – ${dayMonth(end.date)}, ${clock12(end)}"
+        }
+    }
+
+    private fun clock12(t: LocalDateTime): String {
         val hour12 = when (val h = t.hour % 12) { 0 -> 12; else -> h }
         val period = if (t.hour < 12) "AM" else "PM"
         return "$hour12:${t.minute.toString().padStart(2, '0')} $period"
+    }
+
+    private fun dayMonth(d: LocalDate): String {
+        val month = d.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)
+        return "${d.dayOfMonth} $month"
     }
 
     fun remainingSeconds(endIso: String, now: Instant = Clock.System.now()): Long {

@@ -42,7 +42,7 @@ class DefaultBookingsRepository(
             hotelName = room?.hotel?.name ?: "Hotel",
             city = room?.hotel?.city.orEmpty(),
             dateLabel = BookingTime.formatDate(windowStart),
-            stayWindow = "${BookingTime.formatClock12h(windowStart)} – ${BookingTime.formatClock12h(windowEnd)}",
+            stayWindow = BookingTime.formatWindow(windowStart, windowEnd),
             totalPrice = totalPrice.toAmount(),
             currency = currency,
             status = bookingStatus,

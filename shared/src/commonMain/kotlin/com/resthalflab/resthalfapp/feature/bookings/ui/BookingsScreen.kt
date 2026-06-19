@@ -2,6 +2,8 @@ package com.resthalflab.resthalfapp.feature.bookings.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -38,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.resthalflab.resthalfapp.core.design.RhOnSuccessContainer
 import com.resthalflab.resthalfapp.core.design.RhOnWarningContainer
@@ -148,6 +151,7 @@ private fun BookingsHeader(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BookingRow(booking: Booking, onClick: () -> Unit) {
     Row(
@@ -195,24 +199,28 @@ private fun BookingRow(booking: Booking, onClick: () -> Unit) {
                     )
                     Text(
                         text = booking.stayWindow,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(Modifier.height(RhSpacing.xs))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Spacer(Modifier.height(RhSpacing.lg))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(RhSpacing.xs),
+                        itemVerticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RhTag(
+                            text = booking.slotTypeLabel,
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
                         RhTag(
                             text = booking.status.label,
                             containerColor = booking.status.containerColor,
                             contentColor = booking.status.contentColor,
                         )
-                        if (booking.status == BookingStatus.Active) {
-                            Spacer(Modifier.width(RhSpacing.sm))
-                            Text(
-                                text = rememberRemainingLabel(booking.endTime),
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
                     }
                 }
 
@@ -230,12 +238,19 @@ private fun BookingRow(booking: Booking, onClick: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = booking.bookingCode,
+                        text = booking.bookingCode.ellipsize(10),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (booking.status == BookingStatus.Active) {
+                        Text(
+                            text = rememberRemainingLabel(booking.endTime),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
         }
@@ -247,6 +262,16 @@ private fun BookingRow(booking: Booking, onClick: () -> Unit) {
             modifier = Modifier.padding(start = RhSpacing.xs, top = RhSpacing.xl).size(20.dp),
         )
     }
+}
+
+// Cap a string at [max] characters, appending an ellipsis when truncated.
+private fun String.ellipsize(max: Int): String = if (length > max) take(max) + "…" else this
+
+// Localized slot label, e.g. "HALF_DAY" -> "Half Day".
+private val Booking.slotTypeLabel: String get() = when (slotType.uppercase()) {
+    "HALF_DAY" -> "Half Day"
+    "FULL_DAY" -> "Full Day"
+    else -> slotType
 }
 
 // Helpers that keep the color logic out of the screen.

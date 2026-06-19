@@ -33,6 +33,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -66,6 +67,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 private val IndonesianCities = listOf(
@@ -178,8 +180,19 @@ fun HomeScreen(component: HomeComponent) {
     }
 
     if (showDatePicker) {
+        val todayUtcMillis = Clock.System.now()
+            .toLocalDateTime(TimeZone.currentSystemDefault()).date
+            .atStartOfDayIn(TimeZone.UTC)
+            .toEpochMilliseconds()
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = state.date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
+            // Block past dates — only today and future are bookable.
+            selectableDates = remember(todayUtcMillis) {
+                object : SelectableDates {
+                    override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                        utcTimeMillis >= todayUtcMillis
+                }
+            },
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },

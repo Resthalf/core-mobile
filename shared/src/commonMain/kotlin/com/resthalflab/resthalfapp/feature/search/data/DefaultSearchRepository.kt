@@ -21,6 +21,7 @@ class DefaultSearchRepository(
         val response = remote.search(
             city = args.city,
             date = args.date,
+            slot = args.slotType,
             nights = args.nights,
             adults = args.adults,
             includeWholesale = false,

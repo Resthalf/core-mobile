@@ -1,5 +1,6 @@
 package com.resthalflab.resthalfapp.feature.search.data
 
+import com.resthalflab.resthalfapp.feature.search.api.SlotType
 import com.resthalflab.resthalfapp.feature.search.data.dto.SearchResponseDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -13,6 +14,7 @@ class SearchRemote(
     suspend fun search(
         city: String,
         date: String,
+        slot: SlotType,
         nights: Int,
         adults: Int,
         includeWholesale: Boolean,
@@ -20,6 +22,7 @@ class SearchRemote(
         client.get("search") {
             parameter("city", city)
             parameter("date", date)
+            parameter("slotType", slot)
             parameter("nights", nights)
             parameter("adults", adults)
             parameter("includeWholesale", includeWholesale)
