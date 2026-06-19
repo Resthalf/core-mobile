@@ -9,6 +9,7 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.resthalflab.resthalfapp.feature.auth.api.AccountType
 import com.resthalflab.resthalfapp.feature.auth.api.AuthApi
 import com.resthalflab.resthalfapp.feature.auth.loginComponent
 import com.resthalflab.resthalfapp.feature.auth.registerComponent
@@ -101,6 +102,7 @@ class DefaultRootComponent(
                 DefaultMainComponent(
                     componentContext = context,
                     koin = koin,
+                    accountType = auth.session.value?.accountType ?: AccountType.Guest,
                     onOpenSearchResults = { args -> navigation.push(Config.SearchResults(args)) },
                     onOpenBookingDetail = { id -> navigation.push(Config.BookingDetail(id)) },
                 )

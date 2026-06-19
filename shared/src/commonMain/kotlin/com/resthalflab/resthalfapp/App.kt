@@ -6,6 +6,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.HowToReg
+import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +36,9 @@ import com.resthalflab.resthalfapp.feature.listing.ui.PaymentScreen
 import com.resthalflab.resthalfapp.feature.profile.ui.ProfileScreen
 import com.resthalflab.resthalfapp.feature.search.ui.SearchTab
 import com.resthalflab.resthalfapp.feature.search.ui.results.ResultsScreen
+import com.resthalflab.resthalfapp.feature.staff.ui.checkins.CheckInsScreen
+import com.resthalflab.resthalfapp.feature.staff.ui.home.StaffHomeScreen
+import com.resthalflab.resthalfapp.feature.staff.ui.rooms.RoomsScreen
 
 @Composable
 fun App(rootComponent: RootComponent) {
@@ -64,7 +69,7 @@ private fun MainScreen(component: MainComponent) {
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             NavigationBar {
-                MainComponent.Tab.entries.forEach { tab ->
+                component.tabs.forEach { tab ->
                     NavigationBarItem(
                         selected = activeTab == tab,
                         onClick = { component.onTabSelected(tab) },
@@ -83,6 +88,9 @@ private fun MainScreen(component: MainComponent) {
                 is MainComponent.Child.Home -> SearchTab(instance.component)
                 is MainComponent.Child.Bookings -> BookingsScreen(instance.component)
                 is MainComponent.Child.Favorites -> FavoritesScreen(instance.component)
+                is MainComponent.Child.StaffHome -> StaffHomeScreen(instance.component)
+                is MainComponent.Child.CheckIns -> CheckInsScreen(instance.component)
+                is MainComponent.Child.Rooms -> RoomsScreen(instance.component)
                 is MainComponent.Child.Profile -> ProfileScreen(instance.component)
             }
         }
@@ -93,6 +101,8 @@ private fun MainComponent.Tab.label(): String = when (this) {
     MainComponent.Tab.Home -> "Home"
     MainComponent.Tab.Bookings -> "Bookings"
     MainComponent.Tab.Favorites -> "Favorites"
+    MainComponent.Tab.CheckIns -> "Check-ins"
+    MainComponent.Tab.Rooms -> "Rooms"
     MainComponent.Tab.Profile -> "Profile"
 }
 
@@ -100,5 +110,7 @@ private fun MainComponent.Tab.icon(): ImageVector = when (this) {
     MainComponent.Tab.Home -> Icons.Outlined.Home
     MainComponent.Tab.Bookings -> Icons.Outlined.CalendarMonth
     MainComponent.Tab.Favorites -> Icons.Outlined.FavoriteBorder
+    MainComponent.Tab.CheckIns -> Icons.Outlined.HowToReg
+    MainComponent.Tab.Rooms -> Icons.Outlined.MeetingRoom
     MainComponent.Tab.Profile -> Icons.Outlined.Person
 }

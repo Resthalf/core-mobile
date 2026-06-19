@@ -12,6 +12,7 @@ import com.resthalflab.resthalfapp.feature.auth.authModule
 import com.resthalflab.resthalfapp.feature.bookings.bookingsModule
 import com.resthalflab.resthalfapp.feature.listing.listingModule
 import com.resthalflab.resthalfapp.feature.search.searchModule
+import com.resthalflab.resthalfapp.feature.staff.staffModule
 import io.ktor.client.HttpClient
 import org.koin.core.module.Module
 import org.koin.core.qualifier.named
@@ -43,4 +44,5 @@ val appModules: List<Module> = listOf(
     bookingsModule,
     searchModule,
     listingModule,
+    staffModule,
 )
