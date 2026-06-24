@@ -6,7 +6,9 @@ import com.resthalflab.resthalfapp.core.network.AUTH_HTTP_CLIENT
 import com.resthalflab.resthalfapp.core.network.HttpClientFactory
 import com.resthalflab.resthalfapp.core.network.NetworkConfig
 import com.resthalflab.resthalfapp.core.network.TokenProvider
+import com.resthalflab.resthalfapp.core.storage.FailedBookingStore
 import com.resthalflab.resthalfapp.core.storage.SettingsFactory
+import com.resthalflab.resthalfapp.core.storage.SettingsFailedBookingStore
 import com.resthalflab.resthalfapp.core.storage.defaultSettingsFactory
 import com.resthalflab.resthalfapp.feature.auth.authModule
 import com.resthalflab.resthalfapp.feature.bookings.bookingsModule
@@ -24,6 +26,7 @@ private val coreModule: Module = module {
 
 private val storageModule: Module = module {
     single<SettingsFactory> { defaultSettingsFactory() }
+    single<FailedBookingStore> { SettingsFailedBookingStore(get<SettingsFactory>().create("resthalf.bookings")) }
 }
 
 private val networkModule: Module = module {

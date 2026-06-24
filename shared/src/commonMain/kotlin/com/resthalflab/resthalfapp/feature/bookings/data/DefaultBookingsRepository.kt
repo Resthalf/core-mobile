@@ -3,14 +3,17 @@ package com.resthalflab.resthalfapp.feature.bookings.data
 import com.resthalflab.resthalfapp.core.domain.AppError
 import com.resthalflab.resthalfapp.core.domain.AppResult
 import com.resthalflab.resthalfapp.core.network.safeApiCall
+import com.resthalflab.resthalfapp.core.storage.FailedBookingStore
 import com.resthalflab.resthalfapp.feature.bookings.data.dto.BookingDto
 import com.resthalflab.resthalfapp.feature.bookings.domain.BookingTime
 import com.resthalflab.resthalfapp.feature.bookings.domain.BookingsRepository
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.BookingStatus
+import com.resthalflab.resthalfapp.feature.bookings.domain.model.VacateResult
 
 class DefaultBookingsRepository(
     private val remote: BookingsRemote,
+    private val failedBookingStore: FailedBookingStore,
 ) : BookingsRepository {
 
     override suspend fun getBookings(): AppResult<List<Booking>> = safeApiCall {
@@ -26,10 +29,29 @@ class DefaultBookingsRepository(
             is AppResult.Failure -> result
         }
 
+    override suspend fun vacate(delegationId: String): AppResult<VacateResult> = when (
+        val result = safeApiCall { remote.vacate(delegationId) }
+    ) {
+        is AppResult.Success ->
+            if (result.value.success) {
+                AppResult.Success(
+                    VacateResult(
+                        message = result.value.message ?: "Room released.",
+                        earlyByMinutes = result.value.earlyByMinutes,
+                    )
+                )
+            } else {
+                AppResult.Failure(AppError.Unknown("Could not release the room"))
+            }
+        is AppResult.Failure -> result
+    }
+
     private fun BookingDto.toDomain(): Booking {
-        // Status: PENDING from the booking status field (payment incomplete); otherwise Active when a
-        // delegation exists, else Completed. (Cancelled/Overstayed not derivable yet.)
+        // Status: a client-flagged payment failure (slot expired / no slots) wins — the backend keeps
+        // these as PENDING. Otherwise PENDING from the status field; else Active when a delegation
+        // exists, else Completed. (Cancelled/Overstayed not derivable yet.)
         val bookingStatus = when {
+            failedBookingStore.isFailed(id) -> BookingStatus.InternalError
             status?.uppercase() == "PENDING" -> BookingStatus.Pending
             delegation != null -> BookingStatus.Active
             else -> BookingStatus.Completed
@@ -51,6 +73,7 @@ class DefaultBookingsRepository(
             slotType = slotType,
             startTime = windowStart,
             endTime = windowEnd,
+            delegationId = delegation?.id,
         )
     }
 

@@ -16,6 +16,7 @@ import com.resthalflab.resthalfapp.feature.auth.registerComponent
 import com.resthalflab.resthalfapp.feature.auth.ui.login.LoginComponent
 import com.resthalflab.resthalfapp.feature.auth.ui.register.RegisterComponent
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingByIdUseCase
+import com.resthalflab.resthalfapp.feature.bookings.domain.VacateBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.BookingDetailComponent
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.DefaultBookingDetailComponent
@@ -164,6 +165,7 @@ class DefaultRootComponent(
                 DefaultBookingDetailComponent(
                     componentContext = context,
                     getBookingById = koin.get<GetBookingByIdUseCase>(),
+                    vacateBooking = koin.get<VacateBookingUseCase>(),
                     bookingId = config.id,
                     onBack = { navigation.pop() },
                     onPay = { booking -> navigation.push(Config.Payment(booking.toConfirmationArgs())) },

@@ -47,3 +47,12 @@ data class DelegationDto(
     val endTime: String? = null,
     val status: String? = null,
 )
+
+/** POST /vacate/{delegationId} */
+@Serializable
+data class VacateResponse(
+    val success: Boolean = false,
+    val message: String? = null,
+    val roomId: String? = null,
+    val earlyByMinutes: Int = 0,
+)

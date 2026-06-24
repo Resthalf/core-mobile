@@ -11,11 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -68,5 +70,16 @@ fun PaymentScreen(component: PaymentComponent) {
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+
+    if (state.internalError) {
+        AlertDialog(
+            onDismissRequest = component::onDismissInternalError,
+            title = { Text("Internal Error") },
+            text = { Text("There is error processing this booking, could be expired or have no slots") },
+            confirmButton = {
+                TextButton(onClick = component::onDismissInternalError) { Text("OK") }
+            },
+        )
     }
 }

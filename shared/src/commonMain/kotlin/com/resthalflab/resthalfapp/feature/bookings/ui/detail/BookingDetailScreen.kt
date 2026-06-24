@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Hotel
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Whatsapp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -34,8 +35,12 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -64,18 +69,44 @@ private val NavyCardMuted = Color(0xFFB0B8E8)
 @Composable
 fun BookingDetailScreen(component: BookingDetailComponent) {
     val state by component.state.collectAsStateWithLifecycle()
+    val vacate by component.vacate.collectAsStateWithLifecycle()
 
     when (val s = state) {
         BookingDetailComponent.State.Loading -> LoadingScreen(component::onBackClicked)
-        is BookingDetailComponent.State.Error -> ErrorScreen(s.message, component::onBackClicked, component::onRetry)
-        is BookingDetailComponent.State.Content -> Content(s, component)
+        is BookingDetailComponent.State.Error -> ErrorScreen(
+            s.message,
+            component::onBackClicked,
+            component::onRetry
+        )
+
+        is BookingDetailComponent.State.Content -> Content(s, vacate, component)
+    }
+
+    // Result of a vacate request — surfaced over whatever content is showing.
+    when {
+        vacate.successMessage != null -> AlertDialog(
+            onDismissRequest = component::onDismissVacateResult,
+            title = { Text("Room released") },
+            text = { Text(vacate.successMessage!!) },
+            confirmButton = { TextButton(onClick = component::onDismissVacateResult) { Text("OK") } },
+        )
+
+        vacate.error != null -> AlertDialog(
+            onDismissRequest = component::onDismissVacateResult,
+            title = { Text("Couldn't release room") },
+            text = { Text(vacate.error!!) },
+            confirmButton = { TextButton(onClick = component::onDismissVacateResult) { Text("OK") } },
+        )
     }
 }
 
 @Composable
 private fun LoadingScreen(onBack: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize()) {
-        IconButton(onClick = onBack, modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(RhSpacing.sm)) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(RhSpacing.sm)
+        ) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -85,10 +116,17 @@ private fun LoadingScreen(onBack: () -> Unit) {
 @Composable
 private fun ErrorScreen(message: String, onBack: () -> Unit, onRetry: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize()) {
-        IconButton(onClick = onBack, modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(RhSpacing.sm)) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(RhSpacing.sm)
+        ) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
         }
-        Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(RhSpacing.md)) {
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(RhSpacing.md)
+        ) {
             Text(message, color = MaterialTheme.colorScheme.error)
             RhButton("Retry", onRetry)
         }
@@ -96,8 +134,14 @@ private fun ErrorScreen(message: String, onBack: () -> Unit, onRetry: () -> Unit
 }
 
 @Composable
-private fun Content(state: BookingDetailComponent.State.Content, component: BookingDetailComponent) {
+private fun Content(
+    state: BookingDetailComponent.State.Content,
+    vacate: BookingDetailComponent.VacateState,
+    component: BookingDetailComponent,
+) {
     val booking = state.booking
+    var showVacateConfirm by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxSize()) {
         StickySection(booking, state, component::onBackClicked)
         Column(
@@ -122,8 +166,37 @@ private fun Content(state: BookingDetailComponent.State.Content, component: Book
                 )
             }
 
+            if (booking.status == BookingStatus.Active) {
+                Spacer(Modifier.height(RhSpacing.lg))
+                RhButton(
+                    text = "Confirm to Vacate",
+                    onClick = { showVacateConfirm = true },
+                    loading = vacate.submitting,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = RhSpacing.lg),
+                )
+            }
+
             Spacer(Modifier.height(RhSpacing.lg))
         }
+    }
+
+    if (showVacateConfirm) {
+        AlertDialog(
+            onDismissRequest = { showVacateConfirm = false },
+            title = { Text("Leaving already?") },
+            text = { Text("Confirm you've finished your stay and left the room. This releases it for the next guest.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showVacateConfirm = false
+                    component.onConfirmVacate()
+                }) { Text("Confirm") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showVacateConfirm = false
+                }) { Text("Cancel") }
+            },
+        )
     }
 }
 
@@ -142,7 +215,12 @@ private fun StickySection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = RhSpacing.sm, end = RhSpacing.lg, top = RhSpacing.xs, bottom = RhSpacing.xs),
+                .padding(
+                    start = RhSpacing.sm,
+                    end = RhSpacing.lg,
+                    top = RhSpacing.xs,
+                    bottom = RhSpacing.xs
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) {
@@ -155,7 +233,11 @@ private fun StickySection(
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = {}) {
-                Icon(Icons.Outlined.Headset, contentDescription = "Support", tint = MaterialTheme.colorScheme.onBackground)
+                Icon(
+                    Icons.Outlined.Headset,
+                    contentDescription = "Support",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
             }
         }
         StayWindowCard(booking, state)
@@ -252,7 +334,10 @@ private fun TimeUnit(value: Int, label: String) {
 private fun Separator() {
     Text(
         text = ":",
-        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold, fontSize = 40.sp),
+        style = MaterialTheme.typography.displaySmall.copy(
+            fontWeight = FontWeight.Bold,
+            fontSize = 40.sp
+        ),
         color = NavyCardContent,
         modifier = Modifier.padding(horizontal = RhSpacing.sm).padding(bottom = 12.dp),
     )
@@ -297,8 +382,16 @@ private fun HotelSection(booking: Booking) {
 @Composable
 private fun InfoPair(label: String, value: String) {
     Column {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 
@@ -310,10 +403,22 @@ private fun QuickActionsRow() {
             .padding(vertical = RhSpacing.lg),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
-        QuickAction(icon = Icons.Outlined.Hotel, label = "Hotel Info", tint = MaterialTheme.colorScheme.primary) {}
-        QuickAction(icon = Icons.Outlined.Call, label = "Call Hotel", tint = MaterialTheme.colorScheme.primary) {}
+        QuickAction(
+            icon = Icons.Outlined.Hotel,
+            label = "Hotel Info",
+            tint = MaterialTheme.colorScheme.primary
+        ) {}
+        QuickAction(
+            icon = Icons.Outlined.Call,
+            label = "Call Hotel",
+            tint = MaterialTheme.colorScheme.primary
+        ) {}
         QuickAction(icon = Icons.Outlined.Whatsapp, label = "WhatsApp", tint = Color(0xFF25D366)) {}
-        QuickAction(icon = Icons.Outlined.LocationOn, label = "Get Direction", tint = MaterialTheme.colorScheme.primary) {}
+        QuickAction(
+            icon = Icons.Outlined.LocationOn,
+            label = "Get Direction",
+            tint = MaterialTheme.colorScheme.primary
+        ) {}
     }
 }
 
@@ -354,34 +459,42 @@ private fun ImportantBanner() {
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
-private val BookingStatus.screenTitle: String get() = when (this) {
-    BookingStatus.Pending -> "Pending Payment"
-    BookingStatus.Active -> "Active Stay"
-    BookingStatus.Completed -> "Completed Stay"
-    BookingStatus.Cancelled -> "Cancelled Booking"
-    BookingStatus.Overstayed -> "Overstayed"
-}
+private val BookingStatus.screenTitle: String
+    get() = when (this) {
+        BookingStatus.Pending -> "Pending Payment"
+        BookingStatus.Active -> "Active Stay"
+        BookingStatus.Completed -> "Completed Stay"
+        BookingStatus.Cancelled -> "Cancelled Booking"
+        BookingStatus.Overstayed -> "Overstayed"
+        BookingStatus.InternalError -> "Booking Error"
+    }
 
-private val BookingStatus.tagLabel: String get() = when (this) {
-    BookingStatus.Pending -> "PENDING"
-    BookingStatus.Active -> "ACTIVE"
-    BookingStatus.Completed -> "COMPLETED"
-    BookingStatus.Cancelled -> "CANCELLED"
-    BookingStatus.Overstayed -> "OVERSTAYED"
-}
+private val BookingStatus.tagLabel: String
+    get() = when (this) {
+        BookingStatus.Pending -> "PENDING"
+        BookingStatus.Active -> "ACTIVE"
+        BookingStatus.Completed -> "COMPLETED"
+        BookingStatus.Cancelled -> "CANCELLED"
+        BookingStatus.Overstayed -> "OVERSTAYED"
+        BookingStatus.InternalError -> "INTERNAL ERROR"
+    }
 
-private val BookingStatus.tagBg: Color get() = when (this) {
-    BookingStatus.Pending -> Color(0xFFFFE8CC)
-    BookingStatus.Active -> RhSuccessContainer
-    BookingStatus.Completed -> RhSuccessContainer
-    BookingStatus.Cancelled -> Color(0xFFFFE0E0)
-    BookingStatus.Overstayed -> Color(0xFFFBEBCB)
-}
+private val BookingStatus.tagBg: Color
+    get() = when (this) {
+        BookingStatus.Pending -> Color(0xFFFFE8CC)
+        BookingStatus.Active -> RhSuccessContainer
+        BookingStatus.Completed -> RhSuccessContainer
+        BookingStatus.Cancelled -> Color(0xFFFFE0E0)
+        BookingStatus.Overstayed -> Color(0xFFFBEBCB)
+        BookingStatus.InternalError -> Color(0xFFFFE0E0)
+    }
 
-private val BookingStatus.tagFg: Color get() = when (this) {
-    BookingStatus.Pending -> Color(0xFF9A5B00)
-    BookingStatus.Active -> RhOnSuccessContainer
-    BookingStatus.Completed -> RhOnSuccessContainer
-    BookingStatus.Cancelled -> Color(0xFFB71C1C)
-    BookingStatus.Overstayed -> Color(0xFF6B4E16)
-}
+private val BookingStatus.tagFg: Color
+    get() = when (this) {
+        BookingStatus.Pending -> Color(0xFF9A5B00)
+        BookingStatus.Active -> RhOnSuccessContainer
+        BookingStatus.Completed -> RhOnSuccessContainer
+        BookingStatus.Cancelled -> Color(0xFFB71C1C)
+        BookingStatus.Overstayed -> Color(0xFF6B4E16)
+        BookingStatus.InternalError -> Color(0xFFB71C1C)
+    }

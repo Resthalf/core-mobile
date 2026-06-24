@@ -16,6 +16,8 @@ data class Booking(
     // ISO-8601 window used for the active countdown (delegation window when active).
     val startTime: String,
     val endTime: String,
+    // Active delegation id — required to vacate the room. Null when there's no active stay.
+    val delegationId: String? = null,
 )
 
-enum class BookingStatus { Pending, Active, Completed, Cancelled, Overstayed }
+enum class BookingStatus { Pending, Active, Completed, Cancelled, Overstayed, InternalError }

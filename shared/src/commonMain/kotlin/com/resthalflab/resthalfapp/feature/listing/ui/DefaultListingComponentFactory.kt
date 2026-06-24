@@ -7,12 +7,14 @@ import com.resthalflab.resthalfapp.feature.listing.api.ListingComponentFactory
 import com.resthalflab.resthalfapp.feature.listing.api.ListingDetailComponent
 import com.resthalflab.resthalfapp.feature.listing.api.PaymentComponent
 import com.resthalflab.resthalfapp.feature.listing.api.RoomSelection
+import com.resthalflab.resthalfapp.core.storage.FailedBookingStore
 import com.resthalflab.resthalfapp.feature.listing.domain.CreateBookingUseCase
 import com.resthalflab.resthalfapp.feature.listing.domain.SimulatePaymentUseCase
 
 class DefaultListingComponentFactory(
     private val createBooking: CreateBookingUseCase,
     private val simulatePayment: SimulatePaymentUseCase,
+    private val failedBookingStore: FailedBookingStore,
 ) : ListingComponentFactory {
     override fun createDetail(
         componentContext: ComponentContext,
@@ -36,6 +38,7 @@ class DefaultListingComponentFactory(
         componentContext = componentContext,
         args = args,
         simulatePayment = simulatePayment,
+        failedBookingStore = failedBookingStore,
         onPaid = onPaid,
         onBack = onBack,
     )

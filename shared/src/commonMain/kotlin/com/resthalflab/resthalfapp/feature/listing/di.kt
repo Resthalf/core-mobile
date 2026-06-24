@@ -14,5 +14,5 @@ val listingModule: Module = module {
     single { PaymentRemote(get()) }
     factory { CreateBookingUseCase(get()) }
     factory { SimulatePaymentUseCase(get()) }
-    single<ListingComponentFactory> { DefaultListingComponentFactory(get(), get()) }
+    single<ListingComponentFactory> { DefaultListingComponentFactory(get(), get(), get()) }
 }

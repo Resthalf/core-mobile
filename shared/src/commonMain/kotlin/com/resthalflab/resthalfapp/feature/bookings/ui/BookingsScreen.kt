@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -154,10 +155,13 @@ private fun BookingsHeader(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BookingRow(booking: Booking, onClick: () -> Unit) {
+    // A failed booking can't be opened or paid — mute it and swallow taps.
+    val disabled = booking.status == BookingStatus.InternalError
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(enabled = !disabled, onClick = onClick)
+            .alpha(if (disabled) 0.5f else 1f)
             .padding(horizontal = RhSpacing.lg, vertical = RhSpacing.md),
         verticalAlignment = Alignment.Top,
     ) {
@@ -281,6 +285,7 @@ private val BookingStatus.label: String get() = when (this) {
     BookingStatus.Completed -> "Completed"
     BookingStatus.Cancelled -> "Cancelled"
     BookingStatus.Overstayed -> "Overstayed"
+    BookingStatus.InternalError -> "Internal Error"
 }
 
 private val BookingStatus.containerColor: Color get() = when (this) {
@@ -289,6 +294,7 @@ private val BookingStatus.containerColor: Color get() = when (this) {
     BookingStatus.Completed -> RhSuccessContainer
     BookingStatus.Cancelled -> CancelledTagBg
     BookingStatus.Overstayed -> RhWarningContainer
+    BookingStatus.InternalError -> CancelledTagBg
 }
 
 private val BookingStatus.contentColor: Color get() = when (this) {
@@ -297,4 +303,5 @@ private val BookingStatus.contentColor: Color get() = when (this) {
     BookingStatus.Completed -> RhOnSuccessContainer
     BookingStatus.Cancelled -> CancelledTagText
     BookingStatus.Overstayed -> RhOnWarningContainer
+    BookingStatus.InternalError -> CancelledTagText
 }
