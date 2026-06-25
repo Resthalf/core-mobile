@@ -11,4 +11,5 @@ interface BookingsRepository {
     suspend fun vacate(delegationId: String): AppResult<VacateResult>
     suspend fun cancelPreview(bookingId: String): AppResult<CancelPreview>
     suspend fun cancel(bookingId: String, reason: String): AppResult<Unit>
+    suspend fun reschedule(bookingId: String, newStart: String, newEnd: String): AppResult<Unit>
 }

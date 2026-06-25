@@ -8,6 +8,7 @@ import com.resthalflab.resthalfapp.feature.bookings.domain.CancelBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingByIdUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingsUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetCancelPreviewUseCase
+import com.resthalflab.resthalfapp.feature.bookings.domain.RescheduleBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.VacateBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.ui.BookingsComponent
 import com.resthalflab.resthalfapp.feature.bookings.ui.DefaultBookingsComponent
@@ -23,6 +24,7 @@ val bookingsModule: Module = module {
     factory { VacateBookingUseCase(get()) }
     factory { GetCancelPreviewUseCase(get()) }
     factory { CancelBookingUseCase(get()) }
+    factory { RescheduleBookingUseCase(get()) }
 }
 
 /** BookingDetail is a root destination — only the list tab is built here. */

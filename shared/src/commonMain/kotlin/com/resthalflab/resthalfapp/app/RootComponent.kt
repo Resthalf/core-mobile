@@ -18,6 +18,7 @@ import com.resthalflab.resthalfapp.feature.auth.ui.register.RegisterComponent
 import com.resthalflab.resthalfapp.feature.bookings.domain.CancelBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingByIdUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetCancelPreviewUseCase
+import com.resthalflab.resthalfapp.feature.bookings.domain.RescheduleBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.VacateBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.BookingDetailComponent
@@ -170,6 +171,7 @@ class DefaultRootComponent(
                     vacateBooking = koin.get<VacateBookingUseCase>(),
                     getCancelPreview = koin.get<GetCancelPreviewUseCase>(),
                     cancelBooking = koin.get<CancelBookingUseCase>(),
+                    rescheduleBooking = koin.get<RescheduleBookingUseCase>(),
                     bookingId = config.id,
                     onBack = { navigation.pop() },
                     onPay = { booking -> navigation.push(Config.Payment(booking.toConfirmationArgs())) },

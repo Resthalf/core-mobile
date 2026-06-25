@@ -80,3 +80,16 @@ data class CancelResponse(
     val success: Boolean = false,
     val reason: String? = null,
 )
+
+/** POST /bookings/{id}/reschedule */
+@Serializable
+data class RescheduleRequest(
+    val newStart: String,
+    val newEnd: String,
+)
+
+@Serializable
+data class RescheduleResponse(
+    val success: Boolean = false,
+    val newDelegationId: String? = null,
+)

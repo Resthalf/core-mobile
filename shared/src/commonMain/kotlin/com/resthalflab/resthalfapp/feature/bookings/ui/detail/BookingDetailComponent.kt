@@ -8,10 +8,12 @@ import com.resthalflab.resthalfapp.feature.bookings.domain.BookingTime
 import com.resthalflab.resthalfapp.feature.bookings.domain.CancelBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingByIdUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetCancelPreviewUseCase
+import com.resthalflab.resthalfapp.feature.bookings.domain.RescheduleBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.VacateBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.BookingStatus
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.CancelPreview
+import kotlinx.datetime.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -26,6 +28,8 @@ interface BookingDetailComponent {
     val vacate: StateFlow<VacateState>
     /** Cancellation flow state (preview → confirm → result), likewise kept off the ticking [state]. */
     val cancel: StateFlow<CancelState>
+    /** Reschedule submit/result state, kept off the ticking [state]. */
+    val reschedule: StateFlow<RescheduleState>
     fun onBackClicked()
     fun onRetry()
     fun onProceedToPayment()
@@ -34,6 +38,9 @@ interface BookingDetailComponent {
     fun onCancelReservation()
     fun onConfirmCancel()
     fun onDismissCancel()
+    /** Reschedule the stay to [newDate], keeping the same time-of-day and window length. */
+    fun onConfirmReschedule(newDate: LocalDate)
+    fun onDismissRescheduleResult()
     fun onHotelInfoClicked()
     fun onCallHotelClicked()
     fun onWhatsAppClicked()
@@ -72,6 +79,12 @@ interface BookingDetailComponent {
     ) {
         val busy: Boolean get() = loadingPreview || submitting
     }
+
+    data class RescheduleState(
+        val submitting: Boolean = false,
+        val successMessage: String? = null,
+        val error: String? = null,
+    )
 }
 
 class DefaultBookingDetailComponent(
@@ -80,6 +93,7 @@ class DefaultBookingDetailComponent(
     private val vacateBooking: VacateBookingUseCase,
     private val getCancelPreview: GetCancelPreviewUseCase,
     private val cancelBooking: CancelBookingUseCase,
+    private val rescheduleBooking: RescheduleBookingUseCase,
     private val bookingId: String,
     private val onBack: () -> Unit,
     private val onPay: (Booking) -> Unit = {},
@@ -94,6 +108,9 @@ class DefaultBookingDetailComponent(
 
     private val _cancel = MutableStateFlow(BookingDetailComponent.CancelState())
     override val cancel: StateFlow<BookingDetailComponent.CancelState> = _cancel.asStateFlow()
+
+    private val _reschedule = MutableStateFlow(BookingDetailComponent.RescheduleState())
+    override val reschedule: StateFlow<BookingDetailComponent.RescheduleState> = _reschedule.asStateFlow()
 
     private var loadedBooking: Booking? = null
     private var loadJob: Job? = null
@@ -156,6 +173,33 @@ class DefaultBookingDetailComponent(
         val wasDone = _cancel.value.done
         _cancel.value = BookingDetailComponent.CancelState()
         if (wasDone) load() // refresh so the booking now reads as Cancelled
+    }
+
+    override fun onConfirmReschedule(newDate: LocalDate) {
+        val booking = loadedBooking ?: return
+        if (_reschedule.value.submitting) return
+        // Keep the same time-of-day + window length so the slot type is preserved.
+        val window = BookingTime.rescheduleWindow(booking.startTime, booking.endTime, newDate)
+        if (window == null) {
+            _reschedule.value = BookingDetailComponent.RescheduleState(error = "Couldn't compute the new dates")
+            return
+        }
+        scope.launch {
+            _reschedule.value = BookingDetailComponent.RescheduleState(submitting = true)
+            _reschedule.value = when (val result = rescheduleBooking(bookingId, window.first, window.second)) {
+                is AppResult.Success ->
+                    BookingDetailComponent.RescheduleState(successMessage = "Your reservation has been rescheduled.")
+                is AppResult.Failure ->
+                    BookingDetailComponent.RescheduleState(error = result.error.message)
+            }
+        }
+    }
+
+    override fun onDismissRescheduleResult() {
+        val wasSuccess = _reschedule.value.successMessage != null
+        _reschedule.value = BookingDetailComponent.RescheduleState()
+        // On success, return to the bookings list (which refreshes on resume) rather than staying here.
+        if (wasSuccess) onBack()
     }
 
     private fun load() {

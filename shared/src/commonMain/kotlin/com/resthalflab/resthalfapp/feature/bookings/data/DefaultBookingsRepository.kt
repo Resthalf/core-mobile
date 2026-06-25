@@ -70,6 +70,15 @@ class DefaultBookingsRepository(
         is AppResult.Failure -> result
     }
 
+    override suspend fun reschedule(bookingId: String, newStart: String, newEnd: String): AppResult<Unit> = when (
+        val result = safeApiCall { remote.reschedule(bookingId, newStart, newEnd) }
+    ) {
+        is AppResult.Success ->
+            if (result.value.success) AppResult.Success(Unit)
+            else AppResult.Failure(AppError.Unknown("Reschedule failed"))
+        is AppResult.Failure -> result
+    }
+
     private fun BookingDto.toDomain(): Booking {
         val windowStart = delegation?.startTime ?: startTime
         val windowEnd = delegation?.endTime ?: endTime

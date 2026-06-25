@@ -4,6 +4,8 @@ import com.resthalflab.resthalfapp.feature.bookings.data.dto.CancelPreviewRespon
 import com.resthalflab.resthalfapp.feature.bookings.data.dto.CancelRequest
 import com.resthalflab.resthalfapp.feature.bookings.data.dto.CancelResponse
 import com.resthalflab.resthalfapp.feature.bookings.data.dto.MyBookingsResponse
+import com.resthalflab.resthalfapp.feature.bookings.data.dto.RescheduleRequest
+import com.resthalflab.resthalfapp.feature.bookings.data.dto.RescheduleResponse
 import com.resthalflab.resthalfapp.feature.bookings.data.dto.VacateResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -32,5 +34,11 @@ class BookingsRemote(
         client.post("bookings/$bookingId/cancel") {
             contentType(ContentType.Application.Json)
             setBody(CancelRequest(reason))
+        }.body()
+
+    suspend fun reschedule(bookingId: String, newStart: String, newEnd: String): RescheduleResponse =
+        client.post("bookings/$bookingId/reschedule") {
+            contentType(ContentType.Application.Json)
+            setBody(RescheduleRequest(newStart, newEnd))
         }.body()
 }

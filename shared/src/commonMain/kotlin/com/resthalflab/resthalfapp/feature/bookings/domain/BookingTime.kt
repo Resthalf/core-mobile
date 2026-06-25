@@ -3,6 +3,7 @@ package com.resthalflab.resthalfapp.feature.bookings.domain
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -14,6 +15,9 @@ object BookingTime {
 
     private fun parse(iso: String): Instant? = runCatching { Instant.parse(iso) }.getOrNull()
 
+    /** The local calendar date of an ISO instant (null if unparseable). */
+    fun dateOf(iso: String): LocalDate? = parse(iso)?.toLocalDateTime(tz)?.date
+
     /** "16 Jun 2026" */
     fun formatDate(iso: String): String {
         val d = parse(iso)?.toLocalDateTime(tz)?.date ?: return iso
@@ -24,6 +28,28 @@ object BookingTime {
     /** "2:40 AM" */
     fun formatClock12h(iso: String): String =
         parse(iso)?.toLocalDateTime(tz)?.let(::clock12) ?: ""
+
+    /** "25 Jun 2026 07:00" (24h local) — for the reschedule confirmation summary. */
+    fun formatDateTime(iso: String): String {
+        val t = parse(iso)?.toLocalDateTime(tz) ?: return iso
+        val hh = t.hour.toString().padStart(2, '0')
+        val mm = t.minute.toString().padStart(2, '0')
+        return "${formatDate(iso)} $hh:$mm"
+    }
+
+    /**
+     * Moves the stay to [newDate] while keeping the same local time-of-day and the same window length,
+     * so the slot type is preserved. Returns the new (startIso, endIso) in UTC, or null if unparseable.
+     */
+    fun rescheduleWindow(startIso: String, endIso: String, newDate: LocalDate): Pair<String, String>? {
+        val start = parse(startIso) ?: return null
+        val end = parse(endIso) ?: return null
+        val duration = end - start
+        val startTime = start.toLocalDateTime(tz).time
+        val newStart = LocalDateTime(newDate, startTime).toInstant(tz)
+        val newEnd = newStart + duration
+        return newStart.toString() to newEnd.toString()
+    }
 
     /**
      * Local window for the booking list, e.g. "2:40 AM – 2:40 PM" (same day) or

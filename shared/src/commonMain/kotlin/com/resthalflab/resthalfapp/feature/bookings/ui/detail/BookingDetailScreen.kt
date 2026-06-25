@@ -28,14 +28,19 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Whatsapp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,10 +63,20 @@ import com.resthalflab.resthalfapp.core.design.RhSuccessContainer
 import com.resthalflab.resthalfapp.core.design.components.RhButton
 import com.resthalflab.resthalfapp.core.design.components.RhIllustrationPlaceholder
 import com.resthalflab.resthalfapp.core.design.components.RhInfoBanner
+import com.resthalflab.resthalfapp.core.design.components.RhOutlinedButton
 import com.resthalflab.resthalfapp.core.design.components.RhTag
 import com.resthalflab.resthalfapp.core.domain.formatMoney
+import com.resthalflab.resthalfapp.feature.bookings.domain.BookingTime
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.BookingStatus
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 private val NavyCard = Color(0xFF1A237E)
 private val NavyCardContent = Color(0xFFFFFFFF)
@@ -72,6 +87,7 @@ fun BookingDetailScreen(component: BookingDetailComponent) {
     val state by component.state.collectAsStateWithLifecycle()
     val vacate by component.vacate.collectAsStateWithLifecycle()
     val cancel by component.cancel.collectAsStateWithLifecycle()
+    val reschedule by component.reschedule.collectAsStateWithLifecycle()
 
     when (val s = state) {
         BookingDetailComponent.State.Loading -> LoadingScreen(component::onBackClicked)
@@ -81,7 +97,7 @@ fun BookingDetailScreen(component: BookingDetailComponent) {
             component::onRetry
         )
 
-        is BookingDetailComponent.State.Content -> Content(s, vacate, cancel, component)
+        is BookingDetailComponent.State.Content -> Content(s, vacate, cancel, reschedule, component)
     }
 
     // Result of a vacate request — surfaced over whatever content is showing.
@@ -98,6 +114,23 @@ fun BookingDetailScreen(component: BookingDetailComponent) {
             title = { Text("Couldn't release room") },
             text = { Text(vacate.error!!) },
             confirmButton = { TextButton(onClick = component::onDismissVacateResult) { Text("OK") } },
+        )
+    }
+
+    // Result of a reschedule request.
+    when {
+        reschedule.successMessage != null -> AlertDialog(
+            onDismissRequest = component::onDismissRescheduleResult,
+            title = { Text("Reservation rescheduled") },
+            text = { Text(reschedule.successMessage!!) },
+            confirmButton = { TextButton(onClick = component::onDismissRescheduleResult) { Text("OK") } },
+        )
+
+        reschedule.error != null -> AlertDialog(
+            onDismissRequest = component::onDismissRescheduleResult,
+            title = { Text("Couldn't reschedule") },
+            text = { Text(reschedule.error!!) },
+            confirmButton = { TextButton(onClick = component::onDismissRescheduleResult) { Text("OK") } },
         )
     }
 }
@@ -135,15 +168,18 @@ private fun ErrorScreen(message: String, onBack: () -> Unit, onRetry: () -> Unit
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Content(
     state: BookingDetailComponent.State.Content,
     vacate: BookingDetailComponent.VacateState,
     cancel: BookingDetailComponent.CancelState,
+    reschedule: BookingDetailComponent.RescheduleState,
     component: BookingDetailComponent,
 ) {
     val booking = state.booking
     var showVacateConfirm by remember { mutableStateOf(false) }
+    var rescheduleStep by remember { mutableStateOf(RescheduleStep.None) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         StickySection(booking, state, component::onBackClicked)
@@ -187,6 +223,14 @@ private fun Content(
                     loading = cancel.busy,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = RhSpacing.lg),
                 )
+
+                Spacer(Modifier.height(RhSpacing.md))
+                RhOutlinedButton(
+                    text = "Reschedule",
+                    onClick = { rescheduleStep = RescheduleStep.Confirm },
+                    enabled = !reschedule.submitting,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = RhSpacing.lg),
+                )
             }
 
             Spacer(Modifier.height(RhSpacing.lg))
@@ -194,6 +238,12 @@ private fun Content(
     }
 
     CancelDialogs(cancel = cancel, currency = booking.currency, component = component)
+    RescheduleDialogs(
+        booking = booking,
+        step = rescheduleStep,
+        onStep = { rescheduleStep = it },
+        onPickDate = component::onConfirmReschedule,
+    )
 
     if (showVacateConfirm) {
         AlertDialog(
@@ -275,6 +325,92 @@ private fun CancelDialogs(
         }
     }
 }
+
+private enum class RescheduleStep { None, Confirm, Choose, PickDate }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RescheduleDialogs(
+    booking: Booking,
+    step: RescheduleStep,
+    onStep: (RescheduleStep) -> Unit,
+    onPickDate: (LocalDate) -> Unit,
+) {
+    val today = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date }
+    // Quick options shift the *booking's* current date, not today's.
+    val bookingDate = remember(booking.startTime) { BookingTime.dateOf(booking.startTime) ?: today }
+
+    when (step) {
+        RescheduleStep.None -> Unit
+
+        // Step 1: confirm with the current room + window.
+        RescheduleStep.Confirm -> AlertDialog(
+            onDismissRequest = { onStep(RescheduleStep.None) },
+            title = { Text("Reschedule reservation") },
+            text = {
+                Text(
+                    "Are you sure to reschedule this reservation\n\n" +
+                        "Room: Room ${booking.roomNumber}\n" +
+                        "Start Date: ${BookingTime.formatDateTime(booking.startTime)}\n" +
+                        "End Date: ${BookingTime.formatDateTime(booking.endTime)}"
+                )
+            },
+            confirmButton = { TextButton(onClick = { onStep(RescheduleStep.Choose) }) { Text("Continue") } },
+            dismissButton = { TextButton(onClick = { onStep(RescheduleStep.None) }) { Text("Cancel") } },
+        )
+
+        // Step 2: pick when. Tomorrow/Next 2 day shift the date only; time + window are preserved.
+        RescheduleStep.Choose -> AlertDialog(
+            onDismissRequest = { onStep(RescheduleStep.None) },
+            title = { Text("When would you like to schedule?") },
+            text = {
+                Column {
+                    TextButton(onClick = {
+                        onStep(RescheduleStep.None)
+                        onPickDate(bookingDate.plus(1, DateTimeUnit.DAY))
+                    }) { Text("Move 1 day later") }
+                    TextButton(onClick = {
+                        onStep(RescheduleStep.None)
+                        onPickDate(bookingDate.plus(2, DateTimeUnit.DAY))
+                    }) { Text("Move 2 days later") }
+                    TextButton(onClick = { onStep(RescheduleStep.PickDate) }) { Text("Pick a specific date") }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { onStep(RescheduleStep.None) }) { Text("Cancel") } },
+        )
+
+        // Step 3 (Custom day): pick an explicit future date.
+        RescheduleStep.PickDate -> {
+            val todayUtcMillis = today.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+            val datePickerState = rememberDatePickerState(
+                initialSelectedDateMillis = todayUtcMillis,
+                selectableDates = remember(todayUtcMillis) {
+                    object : SelectableDates {
+                        override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis >= todayUtcMillis
+                    }
+                },
+            )
+            DatePickerDialog(
+                onDismissRequest = { onStep(RescheduleStep.None) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let {
+                            onStep(RescheduleStep.None)
+                            onPickDate(it.toLocalDateUtc())
+                        }
+                    }) { Text("OK") }
+                },
+                dismissButton = { TextButton(onClick = { onStep(RescheduleStep.None) }) { Text("Cancel") } },
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
+    }
+}
+
+private fun Long.toLocalDateUtc(): LocalDate =
+    Instant.fromEpochMilliseconds(this).toLocalDateTime(TimeZone.UTC).date
 
 @Composable
 private fun StickySection(

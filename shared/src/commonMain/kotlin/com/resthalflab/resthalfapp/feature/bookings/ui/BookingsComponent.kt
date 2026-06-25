@@ -2,6 +2,7 @@ package com.resthalflab.resthalfapp.feature.bookings.ui
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
+import com.arkivanov.essenty.lifecycle.doOnResume
 import com.resthalflab.resthalfapp.core.domain.AppResult
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingsUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
@@ -58,8 +59,15 @@ class DefaultBookingsComponent(
     private val _state = MutableStateFlow(BookingsComponent.UiState(loading = true))
     override val state: StateFlow<BookingsComponent.UiState> = _state.asStateFlow()
 
+    private var loadedOnce = false
+
     init {
-        load(initial = true)
+        // Reload whenever the list is shown again (tab switch, or returning from detail after a
+        // cancel/reschedule/vacate), so status changes are reflected without a manual pull-to-refresh.
+        lifecycle.doOnResume {
+            load(initial = !loadedOnce)
+            loadedOnce = true
+        }
     }
 
     override fun onRefresh() = load(initial = false)
