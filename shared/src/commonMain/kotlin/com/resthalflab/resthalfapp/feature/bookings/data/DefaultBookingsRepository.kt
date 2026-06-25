@@ -9,6 +9,7 @@ import com.resthalflab.resthalfapp.feature.bookings.domain.BookingTime
 import com.resthalflab.resthalfapp.feature.bookings.domain.BookingsRepository
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.BookingStatus
+import com.resthalflab.resthalfapp.feature.bookings.domain.model.CancelPreview
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.VacateResult
 
 class DefaultBookingsRepository(
@@ -46,18 +47,45 @@ class DefaultBookingsRepository(
         is AppResult.Failure -> result
     }
 
-    private fun BookingDto.toDomain(): Booking {
-        // Status: a client-flagged payment failure (slot expired / no slots) wins — the backend keeps
-        // these as PENDING. Otherwise PENDING from the status field; else Active when a delegation
-        // exists, else Completed. (Cancelled/Overstayed not derivable yet.)
-        val bookingStatus = when {
-            failedBookingStore.isFailed(id) -> BookingStatus.InternalError
-            status?.uppercase() == "PENDING" -> BookingStatus.Pending
-            delegation != null -> BookingStatus.Active
-            else -> BookingStatus.Completed
+    override suspend fun cancelPreview(bookingId: String): AppResult<CancelPreview> = safeApiCall {
+        remote.cancelPreview(bookingId).let {
+            CancelPreview(
+                allowed = it.allowed,
+                policyType = it.policyType.orEmpty(),
+                originalAmount = it.originalAmount,
+                refundAmount = it.refundAmount,
+                refundPercent = it.refundPercent,
+                deadlinePassed = it.deadlinePassed,
+                reason = it.reason.orEmpty(),
+            )
         }
+    }
+
+    override suspend fun cancel(bookingId: String, reason: String): AppResult<Unit> = when (
+        val result = safeApiCall { remote.cancel(bookingId, reason) }
+    ) {
+        is AppResult.Success ->
+            if (result.value.success) AppResult.Success(Unit)
+            else AppResult.Failure(AppError.Unknown(result.value.reason ?: "Cancellation failed"))
+        is AppResult.Failure -> result
+    }
+
+    private fun BookingDto.toDomain(): Booking {
         val windowStart = delegation?.startTime ?: startTime
         val windowEnd = delegation?.endTime ?: endTime
+        // Status precedence: a client-flagged payment failure wins; then explicit backend CANCELLED /
+        // PENDING. Active means checked-in (a live delegation) AND the window has actually begun — a
+        // paid booking that's only upcoming (no delegation yet, or not started) stays Confirmed so it
+        // shows a "starts in" countdown and hides the vacate action. Past the window → Completed.
+        val bookingStatus = when {
+            failedBookingStore.isFailed(id) -> BookingStatus.InternalError
+            status?.uppercase() == "CANCELLED" -> BookingStatus.Cancelled
+            status?.uppercase() == "PENDING" -> BookingStatus.Pending
+            delegation != null && BookingTime.hasStarted(windowStart) && !BookingTime.hasEnded(windowEnd) ->
+                BookingStatus.Active
+            !BookingTime.hasEnded(windowEnd) -> BookingStatus.Confirmed
+            else -> BookingStatus.Completed
+        }
         return Booking(
             id = id,
             bookingCode = midtransOrderId ?: id,

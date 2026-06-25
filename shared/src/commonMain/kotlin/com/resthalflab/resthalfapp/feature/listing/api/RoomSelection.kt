@@ -17,4 +17,7 @@ data class RoomSelection(
     val slotType: String,
     val price: Int,
     val currency: String,
+    // ISO stay window for the searched date, sourced from the /search offer and sent to /bookings/direct.
+    val startTime: String,
+    val endTime: String,
 )

@@ -127,6 +127,8 @@ fun ResultsScreen(component: ResultsComponent) {
                                         slotType = hotel.slotType.name,
                                         price = room.price,
                                         currency = room.currency,
+                                        startTime = room.startTime,
+                                        endTime = room.endTime,
                                     )
                                 )
                             },

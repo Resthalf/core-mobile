@@ -9,4 +9,8 @@ data class RoomOption(
     val slotType: SlotType,
     val price: Int,
     val currency: String,
+    // The backend-offered stay window for the searched date — carried into the booking so it
+    // reflects the date the guest picked (not "now").
+    val startTime: String,
+    val endTime: String,
 )

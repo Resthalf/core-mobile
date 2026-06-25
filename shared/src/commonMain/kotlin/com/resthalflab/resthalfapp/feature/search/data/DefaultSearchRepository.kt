@@ -43,6 +43,8 @@ class DefaultSearchRepository(
                     slotType = slotType,
                     price = it.price,
                     currency = it.currency,
+                    startTime = it.startTime,
+                    endTime = it.endTime,
                 )
             }
             .sortedBy { it.price }

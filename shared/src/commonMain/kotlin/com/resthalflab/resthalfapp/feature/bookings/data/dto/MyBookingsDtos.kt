@@ -56,3 +56,27 @@ data class VacateResponse(
     val roomId: String? = null,
     val earlyByMinutes: Int = 0,
 )
+
+/** GET /bookings/{id}/cancel-preview */
+@Serializable
+data class CancelPreviewResponse(
+    val allowed: Boolean = false,
+    val policyType: String? = null,
+    val originalAmount: Int = 0,
+    val refundAmount: Int = 0,
+    val refundPercent: Int = 0,
+    val deadlinePassed: Boolean = false,
+    val reason: String? = null,
+)
+
+/** POST /bookings/{id}/cancel */
+@Serializable
+data class CancelRequest(
+    val reason: String,
+)
+
+@Serializable
+data class CancelResponse(
+    val success: Boolean = false,
+    val reason: String? = null,
+)

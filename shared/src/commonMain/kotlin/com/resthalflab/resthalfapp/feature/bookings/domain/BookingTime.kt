@@ -50,6 +50,24 @@ object BookingTime {
         return "${d.dayOfMonth} $month"
     }
 
+    /** True once [startIso] is in the past (the stay window has begun). */
+    fun hasStarted(startIso: String, now: Instant = Clock.System.now()): Boolean {
+        val start = parse(startIso) ?: return true
+        return now >= start
+    }
+
+    /** True once [endIso] is in the past (the stay window has elapsed). */
+    fun hasEnded(endIso: String, now: Instant = Clock.System.now()): Boolean {
+        val end = parse(endIso) ?: return false
+        return now >= end
+    }
+
+    /** Whole minutes from now until [startIso]; negative if it already started. */
+    fun minutesUntilStart(startIso: String, now: Instant = Clock.System.now()): Long {
+        val start = parse(startIso) ?: return 0L
+        return (start - now).inWholeMinutes
+    }
+
     fun remainingSeconds(endIso: String, now: Instant = Clock.System.now()): Long {
         val end = parse(endIso) ?: return 0L
         return maxOf(0L, (end - now).inWholeSeconds)

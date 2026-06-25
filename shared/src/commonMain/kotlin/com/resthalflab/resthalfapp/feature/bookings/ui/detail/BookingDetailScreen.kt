@@ -59,6 +59,7 @@ import com.resthalflab.resthalfapp.core.design.components.RhButton
 import com.resthalflab.resthalfapp.core.design.components.RhIllustrationPlaceholder
 import com.resthalflab.resthalfapp.core.design.components.RhInfoBanner
 import com.resthalflab.resthalfapp.core.design.components.RhTag
+import com.resthalflab.resthalfapp.core.domain.formatMoney
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.BookingStatus
 
@@ -70,6 +71,7 @@ private val NavyCardMuted = Color(0xFFB0B8E8)
 fun BookingDetailScreen(component: BookingDetailComponent) {
     val state by component.state.collectAsStateWithLifecycle()
     val vacate by component.vacate.collectAsStateWithLifecycle()
+    val cancel by component.cancel.collectAsStateWithLifecycle()
 
     when (val s = state) {
         BookingDetailComponent.State.Loading -> LoadingScreen(component::onBackClicked)
@@ -79,7 +81,7 @@ fun BookingDetailScreen(component: BookingDetailComponent) {
             component::onRetry
         )
 
-        is BookingDetailComponent.State.Content -> Content(s, vacate, component)
+        is BookingDetailComponent.State.Content -> Content(s, vacate, cancel, component)
     }
 
     // Result of a vacate request — surfaced over whatever content is showing.
@@ -137,6 +139,7 @@ private fun ErrorScreen(message: String, onBack: () -> Unit, onRetry: () -> Unit
 private fun Content(
     state: BookingDetailComponent.State.Content,
     vacate: BookingDetailComponent.VacateState,
+    cancel: BookingDetailComponent.CancelState,
     component: BookingDetailComponent,
 ) {
     val booking = state.booking
@@ -176,9 +179,21 @@ private fun Content(
                 )
             }
 
+            if (state.canCancel) {
+                Spacer(Modifier.height(RhSpacing.lg))
+                RhButton(
+                    text = "Cancel Reservation",
+                    onClick = component::onCancelReservation,
+                    loading = cancel.busy,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = RhSpacing.lg),
+                )
+            }
+
             Spacer(Modifier.height(RhSpacing.lg))
         }
     }
+
+    CancelDialogs(cancel = cancel, currency = booking.currency, component = component)
 
     if (showVacateConfirm) {
         AlertDialog(
@@ -197,6 +212,67 @@ private fun Content(
                 }) { Text("Cancel") }
             },
         )
+    }
+}
+
+@Composable
+private fun CancelDialogs(
+    cancel: BookingDetailComponent.CancelState,
+    currency: String,
+    component: BookingDetailComponent,
+) {
+    when {
+        cancel.done -> AlertDialog(
+            onDismissRequest = component::onDismissCancel,
+            title = { Text("Reservation cancelled") },
+            text = { Text("Your reservation has been cancelled and any eligible refund is being processed.") },
+            confirmButton = { TextButton(onClick = component::onDismissCancel) { Text("OK") } },
+        )
+
+        cancel.error != null -> AlertDialog(
+            onDismissRequest = component::onDismissCancel,
+            title = { Text("Couldn't cancel") },
+            text = { Text(cancel.error) },
+            confirmButton = { TextButton(onClick = component::onDismissCancel) { Text("OK") } },
+        )
+
+        cancel.preview != null -> {
+            val preview = cancel.preview
+            if (preview.allowed) {
+                AlertDialog(
+                    onDismissRequest = component::onDismissCancel,
+                    title = { Text("Cancel this reservation?") },
+                    text = {
+                        Column {
+                            Text(preview.reason)
+                            Spacer(Modifier.height(RhSpacing.sm))
+                            Text(
+                                text = "Refund: ${formatMoney(preview.refundAmount, currency)} (${preview.refundPercent}%)",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            )
+                            Text(
+                                text = "Policy: ${preview.policyType.replace('_', ' ')}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = component::onConfirmCancel) { Text("Cancel reservation") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = component::onDismissCancel) { Text("Keep") }
+                    },
+                )
+            } else {
+                AlertDialog(
+                    onDismissRequest = component::onDismissCancel,
+                    title = { Text("Cancellation not allowed") },
+                    text = { Text(preview.reason) },
+                    confirmButton = { TextButton(onClick = component::onDismissCancel) { Text("OK") } },
+                )
+            }
+        }
     }
 }
 
@@ -283,7 +359,7 @@ private fun StayWindowCard(booking: Booking, state: BookingDetailComponent.State
             Spacer(Modifier.height(RhSpacing.md))
 
             Text(
-                text = "Time left until checkout",
+                text = if (state.countingToStart) "Starts in" else "Time left until checkout",
                 style = MaterialTheme.typography.labelMedium,
                 color = NavyCardMuted,
             )
@@ -462,6 +538,7 @@ private fun ImportantBanner() {
 private val BookingStatus.screenTitle: String
     get() = when (this) {
         BookingStatus.Pending -> "Pending Payment"
+        BookingStatus.Confirmed -> "Upcoming Stay"
         BookingStatus.Active -> "Active Stay"
         BookingStatus.Completed -> "Completed Stay"
         BookingStatus.Cancelled -> "Cancelled Booking"
@@ -472,6 +549,7 @@ private val BookingStatus.screenTitle: String
 private val BookingStatus.tagLabel: String
     get() = when (this) {
         BookingStatus.Pending -> "PENDING"
+        BookingStatus.Confirmed -> "CONFIRMED"
         BookingStatus.Active -> "ACTIVE"
         BookingStatus.Completed -> "COMPLETED"
         BookingStatus.Cancelled -> "CANCELLED"
@@ -482,6 +560,7 @@ private val BookingStatus.tagLabel: String
 private val BookingStatus.tagBg: Color
     get() = when (this) {
         BookingStatus.Pending -> Color(0xFFFFE8CC)
+        BookingStatus.Confirmed -> Color(0xFFE3F0FF)
         BookingStatus.Active -> RhSuccessContainer
         BookingStatus.Completed -> RhSuccessContainer
         BookingStatus.Cancelled -> Color(0xFFFFE0E0)
@@ -492,6 +571,7 @@ private val BookingStatus.tagBg: Color
 private val BookingStatus.tagFg: Color
     get() = when (this) {
         BookingStatus.Pending -> Color(0xFF9A5B00)
+        BookingStatus.Confirmed -> Color(0xFF1A4E8A)
         BookingStatus.Active -> RhOnSuccessContainer
         BookingStatus.Completed -> RhOnSuccessContainer
         BookingStatus.Cancelled -> Color(0xFFB71C1C)

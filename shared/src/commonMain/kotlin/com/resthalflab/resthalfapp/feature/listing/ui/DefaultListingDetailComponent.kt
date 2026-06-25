@@ -48,7 +48,14 @@ class DefaultListingDetailComponent(
         if (_state.value.submitting) return
         scope.launch {
             _state.update { it.copy(submitting = true, error = null) }
-            when (val result = createBooking(selection.roomId, selection.slotType)) {
+            when (
+                val result = createBooking(
+                    selection.roomId,
+                    selection.slotType,
+                    selection.startTime,
+                    selection.endTime,
+                )
+            ) {
                 is AppResult.Success -> onBooked(
                     BookingConfirmationArgs(
                         bookingId = result.value.bookingId,

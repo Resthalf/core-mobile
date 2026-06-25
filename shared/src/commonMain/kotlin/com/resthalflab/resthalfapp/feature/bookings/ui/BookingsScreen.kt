@@ -61,6 +61,8 @@ private val CancelledTagBg = Color(0xFFFFE0E0)
 private val CancelledTagText = Color(0xFFB71C1C)
 private val PendingTagBg = Color(0xFFFFE8CC)
 private val PendingTagText = Color(0xFF9A5B00)
+private val ConfirmedTagBg = Color(0xFFE3F0FF)
+private val ConfirmedTagText = Color(0xFF1A4E8A)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -155,8 +157,9 @@ private fun BookingsHeader(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BookingRow(booking: Booking, onClick: () -> Unit) {
-    // A failed booking can't be opened or paid — mute it and swallow taps.
-    val disabled = booking.status == BookingStatus.InternalError
+    // A failed or cancelled booking can't be opened or acted on — mute it and swallow taps.
+    val disabled = booking.status == BookingStatus.InternalError ||
+        booking.status == BookingStatus.Cancelled
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -281,6 +284,7 @@ private val Booking.slotTypeLabel: String get() = when (slotType.uppercase()) {
 // Helpers that keep the color logic out of the screen.
 private val BookingStatus.label: String get() = when (this) {
     BookingStatus.Pending -> "Pending payment"
+    BookingStatus.Confirmed -> "Confirmed"
     BookingStatus.Active -> "Active"
     BookingStatus.Completed -> "Completed"
     BookingStatus.Cancelled -> "Cancelled"
@@ -290,6 +294,7 @@ private val BookingStatus.label: String get() = when (this) {
 
 private val BookingStatus.containerColor: Color get() = when (this) {
     BookingStatus.Pending -> PendingTagBg
+    BookingStatus.Confirmed -> ConfirmedTagBg
     BookingStatus.Active -> onPrimaryContainer
     BookingStatus.Completed -> RhSuccessContainer
     BookingStatus.Cancelled -> CancelledTagBg
@@ -299,6 +304,7 @@ private val BookingStatus.containerColor: Color get() = when (this) {
 
 private val BookingStatus.contentColor: Color get() = when (this) {
     BookingStatus.Pending -> PendingTagText
+    BookingStatus.Confirmed -> ConfirmedTagText
     BookingStatus.Active -> RhStarGold
     BookingStatus.Completed -> RhOnSuccessContainer
     BookingStatus.Cancelled -> CancelledTagText

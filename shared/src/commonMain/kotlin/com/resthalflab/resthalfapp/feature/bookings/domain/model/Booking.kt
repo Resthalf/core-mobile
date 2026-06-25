@@ -20,4 +20,4 @@ data class Booking(
     val delegationId: String? = null,
 )
 
-enum class BookingStatus { Pending, Active, Completed, Cancelled, Overstayed, InternalError }
+enum class BookingStatus { Pending, Confirmed, Active, Completed, Cancelled, Overstayed, InternalError }
