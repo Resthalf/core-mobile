@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -37,6 +38,8 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
+            implementation(libs.ktor.client.android)
+            implementation(libs.koin.android)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -47,9 +50,40 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.material.icons.extended)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.uuid)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.json)
+            implementation(libs.ktor.client.logging)
+            implementation(libs.ktor.client.auth)
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.noarg)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.kamel.image)
+            // Decompose Navigation & State Management
+            implementation(libs.decompose)
+            implementation(libs.decompose.compose)
+            implementation(libs.essenty.lifecycle)
+            implementation(libs.essenty.statekeeper)
+            implementation(libs.essenty.instancekeeper)
+            implementation(libs.essenty.backhandler)
+            implementation(libs.essenty.lifecycle.coroutines)
+
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.turbine)
+            implementation(libs.koin.test)
+            implementation(libs.kotest.assertions)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
     }
 }
