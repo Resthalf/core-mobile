@@ -8,6 +8,7 @@ import com.resthalflab.resthalfapp.feature.search.domain.SearchHotelsUseCase
 import com.resthalflab.resthalfapp.feature.search.domain.SearchRepository
 import com.resthalflab.resthalfapp.feature.search.ui.DefaultSearchTabComponent
 import com.resthalflab.resthalfapp.feature.search.ui.SearchTabComponent
+import org.koin.core.Koin
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -20,8 +21,10 @@ val searchModule: Module = module {
 /** Results and deeper screens are root destinations — only the home tab is built here. */
 fun searchTabComponent(
     componentContext: ComponentContext,
+    koin: Koin,
     onOpenSearchResults: (SearchArgs) -> Unit,
 ): SearchTabComponent = DefaultSearchTabComponent(
     componentContext = componentContext,
+    locationSearch = koin.get(),
     onOpenSearchResults = onOpenSearchResults,
 )

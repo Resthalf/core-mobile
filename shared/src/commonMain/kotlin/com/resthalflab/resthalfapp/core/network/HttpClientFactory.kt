@@ -1,5 +1,6 @@
 package com.resthalflab.resthalfapp.core.network
 
+import com.benasher44.uuid.uuid4
 import com.resthalflab.resthalfapp.core.domain.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
@@ -14,6 +15,7 @@ import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import io.ktor.client.plugins.logging.Logger as KtorLogger
@@ -21,8 +23,21 @@ import io.ktor.client.plugins.logging.Logger as KtorLogger
 /** Koin qualifier for the bare client used by auth endpoints (login / refresh). */
 const val AUTH_HTTP_CLIENT = "authHttpClient"
 
+/** Koin qualifier for the Zentrumhub location-autosuggest client (public, no credentials). */
+const val ZENTRUMHUB_AUTOSUGGEST_CLIENT = "zentrumhubAutosuggestClient"
+
+/** Koin qualifier for the authenticated Zentrumhub Nexus client (availability / booking). */
+const val ZENTRUMHUB_NEXUS_CLIENT = "zentrumhubNexusClient"
+
+/**
+ * Headers redacted from request/response logs. Request bodies stay visible for debugging, but tokens
+ * and provider credentials must never reach the platform log.
+ */
+private val SENSITIVE_HEADERS = setOf(HttpHeaders.Authorization, "apiKey", "accountId")
+
 class HttpClientFactory(
     private val config: NetworkConfig,
+    private val zentrumhub: ZentrumhubConfig,
     private val logger: Logger,
 ) {
 
@@ -30,24 +45,48 @@ class HttpClientFactory(
      * Bare client with no Bearer [Auth] plugin. Used for login and token refresh so those
      * requests never trigger the refresh flow themselves (which would recurse on a 401).
      */
-    fun createAuthClient(): HttpClient = build { }
+    fun createAuthClient(): HttpClient = build(config.baseUrl, config.logRequests)
 
     /** Authenticated client used by all feature APIs. Attaches and refreshes Bearer tokens. */
-    fun createApiClient(tokenProvider: TokenProvider): HttpClient = build {
-        install(Auth) {
-            bearer {
-                loadTokens {
-                    tokenProvider.load()?.let { BearerTokens(it.access, it.refresh) }
-                }
-                refreshTokens {
-                    val refreshToken = oldTokens?.refreshToken ?: return@refreshTokens null
-                    tokenProvider.refresh(refreshToken)?.let { BearerTokens(it.access, it.refresh) }
+    fun createApiClient(tokenProvider: TokenProvider): HttpClient =
+        build(config.baseUrl, config.logRequests) {
+            install(Auth) {
+                bearer {
+                    loadTokens {
+                        tokenProvider.load()?.let { BearerTokens(it.access, it.refresh) }
+                    }
+                    refreshTokens {
+                        val refreshToken = oldTokens?.refreshToken ?: return@refreshTokens null
+                        tokenProvider.refresh(refreshToken)?.let { BearerTokens(it.access, it.refresh) }
+                    }
                 }
             }
         }
+
+    /** Zentrumhub autosuggest — public endpoint, no credentials (matches the provider spec). */
+    fun createAutosuggestClient(): HttpClient = build(zentrumhub.autosuggestBaseUrl, zentrumhub.logRequests)
+
+    /**
+     * Zentrumhub Nexus — authenticated provider APIs (availability, booking, …). Sends the mandatory
+     * accountId / apiKey on every request plus a fresh correlationId per call. Scaffolded here; the
+     * actual endpoint calls land in later wholesale steps.
+     */
+    fun createNexusClient(): HttpClient = build(zentrumhub.nexusBaseUrl, zentrumhub.logRequests) {
+        defaultRequest {
+            header("accountId", zentrumhub.accountId)
+            header("apiKey", zentrumhub.apiKey)
+            // DefaultRequest re-runs its block per request, so each call gets a unique correlationId.
+            header("correlationId", uuid4().toString())
+            zentrumhub.customerIp?.let { header("customer-ip", it) }
+            contentType(ContentType.Application.Json)
+        }
     }
 
-    private fun build(extra: HttpClientConfig<*>.() -> Unit): HttpClient = HttpClient {
+    private fun build(
+        baseUrl: String,
+        logRequests: Boolean,
+        extra: HttpClientConfig<*>.() -> Unit = {},
+    ): HttpClient = HttpClient {
         expectSuccess = true
 
         install(ContentNegotiation) {
@@ -65,7 +104,7 @@ class HttpClientFactory(
             requestTimeoutMillis = config.requestTimeoutMs
         }
 
-        if (config.logRequests) {
+        if (logRequests) {
             val appLogger = logger
             install(Logging) {
                 level = LogLevel.ALL
@@ -74,11 +113,13 @@ class HttpClientFactory(
                         appLogger.info("Http", message)
                     }
                 }
+                // Keep bodies visible for debugging, but never print credentials.
+                sanitizeHeader { name -> SENSITIVE_HEADERS.any { it.equals(name, ignoreCase = true) } }
             }
         }
 
         defaultRequest {
-            url(config.baseUrl)
+            url(baseUrl)
             header(HttpHeaders.Accept, ContentType.Application.Json.toString())
         }
 

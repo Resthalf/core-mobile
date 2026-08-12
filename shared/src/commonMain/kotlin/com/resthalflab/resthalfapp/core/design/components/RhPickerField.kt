@@ -19,16 +19,19 @@ import com.resthalflab.resthalfapp.core.design.RhSpacing
 
 /**
  * Read-only, tappable field shaped like an outlined text field. Use for values chosen via a picker
- * (date, guests) rather than typed. Mirrors [RhTextField]'s visual language.
+ * (date, guests) rather than typed. Mirrors [RhTextField]'s visual language. When [value] is blank
+ * and a [placeholder] is given, the placeholder is shown greyed, like a text-field hint.
  */
 @Composable
 fun RhPickerField(
     value: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    placeholder: String? = null,
     leadingIcon: ImageVector? = null,
     trailingIcon: ImageVector? = null,
 ) {
+    val showPlaceholder = value.isBlank() && placeholder != null
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth().height(56.dp),
@@ -48,9 +51,13 @@ fun RhPickerField(
                 )
             }
             Text(
-                text = value,
+                text = if (showPlaceholder) placeholder!! else value,
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (showPlaceholder) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
                 modifier = Modifier
                     .padding(start = if (leadingIcon != null) RhSpacing.md else 0.dp)
                     .weight(1f),

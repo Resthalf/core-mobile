@@ -33,6 +33,7 @@ fun staffHomeComponent(
     onOpenRooms: (String) -> Unit,
 ): StaffHomeComponent = DefaultStaffHomeComponent(
     componentContext = componentContext,
+    locationSearch = koin.get(),
     onSearch = onOpenSearchResults,
     getRooms = koin.get(),
     confirmVacate = koin.get(),

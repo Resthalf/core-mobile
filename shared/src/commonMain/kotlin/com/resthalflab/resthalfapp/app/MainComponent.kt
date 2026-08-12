@@ -119,7 +119,7 @@ class DefaultMainComponent(
                         )
                     )
                 } else {
-                    MainComponent.Child.Home(searchTabComponent(context, onOpenSearchResults))
+                    MainComponent.Child.Home(searchTabComponent(context, koin, onOpenSearchResults))
                 }
             Config.Bookings -> MainComponent.Child.Bookings(bookingsComponent(context, koin, onOpenBookingDetail))
             Config.Favorites -> MainComponent.Child.Favorites(favoritesComponent(context))
