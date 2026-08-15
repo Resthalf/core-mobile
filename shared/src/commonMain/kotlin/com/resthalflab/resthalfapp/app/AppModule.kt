@@ -17,6 +17,7 @@ import com.resthalflab.resthalfapp.core.storage.SettingsFailedBookingStore
 import com.resthalflab.resthalfapp.core.storage.defaultSettingsFactory
 import com.resthalflab.resthalfapp.feature.auth.authModule
 import com.resthalflab.resthalfapp.feature.bookings.bookingsModule
+import com.resthalflab.resthalfapp.feature.favorites.favoritesModule
 import com.resthalflab.resthalfapp.feature.listing.listingModule
 import com.resthalflab.resthalfapp.feature.search.searchModule
 import com.resthalflab.resthalfapp.feature.staff.staffModule
@@ -72,4 +73,5 @@ val appModules: List<Module> = listOf(
     listingModule,
     staffModule,
     wholesaleModule,
+    favoritesModule,
 )

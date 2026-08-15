@@ -2,8 +2,7 @@ package com.resthalflab.resthalfapp.feature.search
 
 import com.arkivanov.decompose.ComponentContext
 import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
-import com.resthalflab.resthalfapp.feature.search.data.DefaultSearchRepository
-import com.resthalflab.resthalfapp.feature.search.data.SearchRemote
+import com.resthalflab.resthalfapp.feature.search.data.OfflineSearchRepository
 import com.resthalflab.resthalfapp.feature.search.domain.SearchHotelsUseCase
 import com.resthalflab.resthalfapp.feature.search.domain.SearchRepository
 import com.resthalflab.resthalfapp.feature.search.ui.DefaultSearchTabComponent
@@ -13,8 +12,9 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 val searchModule: Module = module {
-    single { SearchRemote(get()) }
-    single<SearchRepository> { DefaultSearchRepository(get()) }
+    // Day-room search runs offline while the RestHalf backend is retired (SearchRemote +
+    // DefaultSearchRepository are kept in the tree for the future Zentrumhub Nexus migration).
+    single<SearchRepository> { OfflineSearchRepository() }
     factory { SearchHotelsUseCase(get()) }
 }
 

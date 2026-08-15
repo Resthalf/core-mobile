@@ -23,6 +23,7 @@ import com.resthalflab.resthalfapp.feature.bookings.domain.VacateBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.BookingDetailComponent
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.DefaultBookingDetailComponent
+import com.resthalflab.resthalfapp.feature.favorites.api.FavoritesRepository
 import com.resthalflab.resthalfapp.feature.listing.api.BookingConfirmationArgs
 import com.resthalflab.resthalfapp.feature.listing.api.BookingConfirmationComponent
 import com.resthalflab.resthalfapp.feature.listing.api.ListingComponentFactory
@@ -116,6 +117,7 @@ class DefaultRootComponent(
                 DefaultResultsComponent(
                     componentContext = context,
                     searchHotels = koin.get<SearchHotelsUseCase>(),
+                    favorites = koin.get<FavoritesRepository>(),
                     args = config.args,
                     onOpenRoom = { selection -> navigation.push(Config.ListingDetail(selection)) },
                     onBack = { navigation.pop() },

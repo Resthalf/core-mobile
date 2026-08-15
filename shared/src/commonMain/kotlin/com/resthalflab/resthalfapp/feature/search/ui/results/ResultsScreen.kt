@@ -41,9 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -66,6 +64,7 @@ import com.resthalflab.resthalfapp.feature.search.domain.windowShort
 @Composable
 fun ResultsScreen(component: ResultsComponent) {
     val state by component.state.collectAsStateWithLifecycle()
+    val favoriteIds by component.favoriteHotelIds.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val expandedIds = remember { mutableStateMapOf<String, Boolean>() }
     val elevated by remember {
@@ -112,6 +111,8 @@ fun ResultsScreen(component: ResultsComponent) {
                     items(state.results, key = { it.hotelId }) { hotel ->
                         HotelRow(
                             hotel = hotel,
+                            isFavorite = hotel.hotelId in favoriteIds,
+                            onToggleFavorite = { component.onToggleFavorite(hotel) },
                             expanded = expandedIds[hotel.hotelId] == true,
                             onToggleExpand = {
                                 expandedIds[hotel.hotelId] = expandedIds[hotel.hotelId] != true
@@ -235,6 +236,8 @@ private fun NightStayChip(label: String, modifier: Modifier = Modifier) {
 @Composable
 private fun HotelRow(
     hotel: HotelSearchResult,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     expanded: Boolean,
     onToggleExpand: () -> Unit,
     onRoomClick: (RoomOption) -> Unit,
@@ -279,7 +282,7 @@ private fun HotelRow(
 //                }
             }
 
-            FavouriteButton()
+            FavouriteButton(favourite = isFavorite, onToggle = onToggleFavorite)
         }
 
         Spacer(Modifier.height(RhSpacing.md))
@@ -387,11 +390,9 @@ private fun RoomItem(room: RoomOption, onClick: () -> Unit) {
     }
 }
 
-// Local-only toggle for now; wire to the favourites feature when it lands.
 @Composable
-private fun FavouriteButton() {
-    var favourite by remember { mutableStateOf(false) }
-    IconButton(onClick = { favourite = !favourite }) {
+private fun FavouriteButton(favourite: Boolean, onToggle: () -> Unit) {
+    IconButton(onClick = onToggle) {
         Icon(
             imageVector = if (favourite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
             contentDescription = "Save",
