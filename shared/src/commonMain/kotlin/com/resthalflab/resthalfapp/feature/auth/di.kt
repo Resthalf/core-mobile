@@ -1,14 +1,7 @@
 package com.resthalflab.resthalfapp.feature.auth
 
 import com.arkivanov.decompose.ComponentContext
-import com.resthalflab.resthalfapp.core.network.AUTH_HTTP_CLIENT
-import com.resthalflab.resthalfapp.core.network.TokenProvider
-import com.resthalflab.resthalfapp.core.storage.SecureTokenStore
-import com.resthalflab.resthalfapp.core.storage.SettingsFactory
-import com.resthalflab.resthalfapp.core.storage.SettingsSecureTokenStore
 import com.resthalflab.resthalfapp.feature.auth.api.AuthApi
-import com.resthalflab.resthalfapp.feature.auth.data.AuthRemote
-import com.resthalflab.resthalfapp.feature.auth.data.AuthTokenProvider
 import com.resthalflab.resthalfapp.feature.auth.data.LocalAuthRepository
 import com.resthalflab.resthalfapp.feature.auth.domain.LoginUseCase
 import com.resthalflab.resthalfapp.feature.auth.domain.RegisterUseCase
@@ -20,19 +13,14 @@ import com.resthalflab.resthalfapp.feature.auth.ui.welcome.DefaultWelcomeCompone
 import com.resthalflab.resthalfapp.feature.auth.ui.welcome.WelcomeComponent
 import org.koin.core.Koin
 import org.koin.core.module.Module
-import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val authModule: Module = module {
-    single<SecureTokenStore> {
-        SettingsSecureTokenStore(get<SettingsFactory>().create("resthalf.auth"))
-    }
     // Active MVP auth: local session (Google + guest), no own backend.
     single<AuthApi> { LocalAuthRepository(get()) }
 
-    // Backend phone/password wiring — kept for a future comeback; not the active path.
-    single { AuthRemote(get(named(AUTH_HTTP_CLIENT))) }
-    single<TokenProvider> { AuthTokenProvider(get()) }
+    // Reference-only (backend phone/password): LoginUseCase/RegisterUseCase resolve the local
+    // AuthApi and are not routed in the MVP.
     factory { LoginUseCase(get()) }
     factory { RegisterUseCase(get()) }
 }

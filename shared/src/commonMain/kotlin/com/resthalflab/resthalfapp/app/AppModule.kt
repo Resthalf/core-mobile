@@ -3,10 +3,8 @@ package com.resthalflab.resthalfapp.app
 import com.resthalflab.resthalfapp.core.domain.Logger
 import com.resthalflab.resthalfapp.core.domain.isDebugBuild
 import com.resthalflab.resthalfapp.core.domain.platformLogger
-import com.resthalflab.resthalfapp.core.network.AUTH_HTTP_CLIENT
 import com.resthalflab.resthalfapp.core.network.HttpClientFactory
 import com.resthalflab.resthalfapp.core.network.NetworkConfig
-import com.resthalflab.resthalfapp.core.network.TokenProvider
 import com.resthalflab.resthalfapp.core.network.ZENTRUMHUB_AUTOSUGGEST_CLIENT
 import com.resthalflab.resthalfapp.core.network.ZENTRUMHUB_NEXUS_CLIENT
 import com.resthalflab.resthalfapp.core.network.ZentrumhubBuildConfig
@@ -20,7 +18,6 @@ import com.resthalflab.resthalfapp.feature.bookings.bookingsModule
 import com.resthalflab.resthalfapp.feature.favorites.favoritesModule
 import com.resthalflab.resthalfapp.feature.listing.listingModule
 import com.resthalflab.resthalfapp.feature.search.searchModule
-import com.resthalflab.resthalfapp.feature.staff.staffModule
 import com.resthalflab.resthalfapp.feature.wholesale.wholesaleModule
 import io.ktor.client.HttpClient
 import org.koin.core.module.Module
@@ -37,7 +34,8 @@ private val storageModule: Module = module {
 }
 
 private val networkModule: Module = module {
-    // Trailing slash is required so relative request paths ("auth/guest/login") resolve correctly.
+    // RestHalf backend config — DISABLED (kept for a future phone/password comeback). No client is
+    // registered against it below, so its base URL is never used at runtime.
     single { NetworkConfig(baseUrl = "https://resthalf-backend-production.up.railway.app/", logRequests = isDebugBuild()) }
     single {
         ZentrumhubConfig(
@@ -54,13 +52,9 @@ private val networkModule: Module = module {
         )
     }
     single { HttpClientFactory(get(), get(), get()) }
-    // Bare client for auth endpoints (no Bearer plugin) — breaks the auth <-> client DI cycle.
-    single<HttpClient>(named(AUTH_HTTP_CLIENT)) { get<HttpClientFactory>().createAuthClient() }
-    // Zentrumhub (wholesale) clients: public autosuggest + authenticated Nexus (scaffold).
+    // Zentrumhub clients: public autosuggest + authenticated Nexus (scaffold, wired per Nexus spec).
     single<HttpClient>(named(ZENTRUMHUB_AUTOSUGGEST_CLIENT)) { get<HttpClientFactory>().createAutosuggestClient() }
     single<HttpClient>(named(ZENTRUMHUB_NEXUS_CLIENT)) { get<HttpClientFactory>().createNexusClient() }
-    // Default authenticated client used by all feature APIs.
-    single<HttpClient> { get<HttpClientFactory>().createApiClient(get<TokenProvider>()) }
 }
 
 val appModules: List<Module> = listOf(
@@ -71,7 +65,6 @@ val appModules: List<Module> = listOf(
     bookingsModule,
     searchModule,
     listingModule,
-    staffModule,
     wholesaleModule,
     favoritesModule,
 )

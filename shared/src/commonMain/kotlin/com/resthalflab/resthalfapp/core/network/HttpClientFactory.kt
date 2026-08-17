@@ -20,7 +20,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import io.ktor.client.plugins.logging.Logger as KtorLogger
 
-/** Koin qualifier for the bare client used by auth endpoints (login / refresh). */
+/** Koin qualifier for the bare client used by the (disabled) backend auth endpoints. */
 const val AUTH_HTTP_CLIENT = "authHttpClient"
 
 /** Koin qualifier for the Zentrumhub location-autosuggest client (public, no credentials). */
@@ -30,8 +30,7 @@ const val ZENTRUMHUB_AUTOSUGGEST_CLIENT = "zentrumhubAutosuggestClient"
 const val ZENTRUMHUB_NEXUS_CLIENT = "zentrumhubNexusClient"
 
 /**
- * Headers redacted from request/response logs. Request bodies stay visible for debugging, but tokens
- * and provider credentials must never reach the platform log.
+ * Headers redacted from request/response logs so tokens & provider credentials never reach the log.
  */
 private val SENSITIVE_HEADERS = setOf(HttpHeaders.Authorization, "apiKey", "accountId")
 
@@ -41,13 +40,11 @@ class HttpClientFactory(
     private val logger: Logger,
 ) {
 
-    /**
-     * Bare client with no Bearer [Auth] plugin. Used for login and token refresh so those
-     * requests never trigger the refresh flow themselves (which would recurse on a 401).
-     */
+    // --- RestHalf backend: DISABLED. Kept for a future phone/password comeback; these builders are
+    // not registered in DI (AppModule), so no client is ever built against the backend base URL. ---
+
     fun createAuthClient(): HttpClient = build(config.baseUrl, config.logRequests)
 
-    /** Authenticated client used by all feature APIs. Attaches and refreshes Bearer tokens. */
     fun createApiClient(tokenProvider: TokenProvider): HttpClient =
         build(config.baseUrl, config.logRequests) {
             install(Auth) {
@@ -63,13 +60,15 @@ class HttpClientFactory(
             }
         }
 
+    // --- Zentrumhub: active. ---
+
     /** Zentrumhub autosuggest — public endpoint, no credentials (matches the provider spec). */
     fun createAutosuggestClient(): HttpClient = build(zentrumhub.autosuggestBaseUrl, zentrumhub.logRequests)
 
     /**
      * Zentrumhub Nexus — authenticated provider APIs (availability, booking, …). Sends the mandatory
      * accountId / apiKey on every request plus a fresh correlationId per call. Scaffolded here; the
-     * actual endpoint calls land in later wholesale steps.
+     * actual endpoint calls land as each feature's Nexus spec is wired.
      */
     fun createNexusClient(): HttpClient = build(zentrumhub.nexusBaseUrl, zentrumhub.logRequests) {
         defaultRequest {
