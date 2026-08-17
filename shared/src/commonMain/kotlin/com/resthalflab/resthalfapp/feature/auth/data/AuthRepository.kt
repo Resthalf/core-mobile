@@ -8,6 +8,7 @@ import com.resthalflab.resthalfapp.core.storage.SettingsFactory
 import com.resthalflab.resthalfapp.feature.auth.api.AccountType
 import com.resthalflab.resthalfapp.feature.auth.api.AuthApi
 import com.resthalflab.resthalfapp.feature.auth.api.AuthSession
+import com.resthalflab.resthalfapp.feature.auth.api.GoogleAccount
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,6 +48,13 @@ class AuthRepository(
     ): AppResult<Unit> = safeApiCall {
         persist(remote.register(fullName, phone, email, password))
     }
+
+    // Local-first methods are handled by LocalAuthRepository; this backend path is reference-only.
+    override suspend fun signInWithGoogle(account: GoogleAccount): Unit =
+        throw UnsupportedOperationException("Backend auth path — Google sign-in is handled by LocalAuthRepository")
+
+    override fun continueAsGuest(): Unit =
+        throw UnsupportedOperationException("Backend auth path — guest is handled by LocalAuthRepository")
 
     override suspend fun logout() {
         tokenStore.clear()

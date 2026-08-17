@@ -74,6 +74,13 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.ktor.client.android)
             implementation(libs.koin.android)
+            // Google sign-in (Credential Manager) + Firebase Auth — used by the Android actual of
+            // the KMP Google sign-in. The google-services plugin + google-services.json live in
+            // :androidApp, which is enough for Firebase to auto-initialize at runtime.
+            implementation(libs.firebase.auth)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services)
+            implementation(libs.google.identity)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

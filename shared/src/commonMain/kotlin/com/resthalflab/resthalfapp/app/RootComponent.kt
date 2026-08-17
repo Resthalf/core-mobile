@@ -11,10 +11,8 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.resthalflab.resthalfapp.feature.auth.api.AccountType
 import com.resthalflab.resthalfapp.feature.auth.api.AuthApi
-import com.resthalflab.resthalfapp.feature.auth.loginComponent
-import com.resthalflab.resthalfapp.feature.auth.registerComponent
-import com.resthalflab.resthalfapp.feature.auth.ui.login.LoginComponent
-import com.resthalflab.resthalfapp.feature.auth.ui.register.RegisterComponent
+import com.resthalflab.resthalfapp.feature.auth.welcomeComponent
+import com.resthalflab.resthalfapp.feature.auth.ui.welcome.WelcomeComponent
 import com.resthalflab.resthalfapp.feature.bookings.domain.CancelBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingByIdUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetCancelPreviewUseCase
@@ -44,8 +42,7 @@ interface RootComponent {
     val childStack: Value<ChildStack<*, Child>>
 
     sealed interface Child {
-        data class Login(val component: LoginComponent) : Child
-        data class Register(val component: RegisterComponent) : Child
+        data class Login(val component: WelcomeComponent) : Child
         data class Main(val component: MainComponent) : Child
         data class SearchResults(val component: ResultsComponent) : Child
         data class ListingDetail(val component: ListingDetailComponent) : Child
@@ -88,19 +85,7 @@ class DefaultRootComponent(
     private fun child(config: Config, context: ComponentContext): RootComponent.Child =
         when (config) {
             Config.Login -> RootComponent.Child.Login(
-                loginComponent(
-                    ctx = context,
-                    koin = koin,
-                    onNavigateToRegister = { navigation.push(Config.Register) },
-                )
-            )
-
-            Config.Register -> RootComponent.Child.Register(
-                registerComponent(
-                    ctx = context,
-                    koin = koin,
-                    onBack = { navigation.pop() },
-                )
+                welcomeComponent(context, koin)
             )
 
             Config.Main -> RootComponent.Child.Main(
@@ -191,9 +176,6 @@ class DefaultRootComponent(
     private sealed interface Config {
         @Serializable
         data object Login : Config
-
-        @Serializable
-        data object Register : Config
 
         @Serializable
         data object Main : Config

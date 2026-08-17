@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.google.service.gms)
 }
 
 kotlin {
@@ -19,6 +20,9 @@ dependencies {
 
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
+
+    // Firebase/Credential libs live in :shared (androidMain) where the Google sign-in actual is
+    // implemented; :androidApp only needs the google-services plugin + google-services.json.
 }
 
 android {
