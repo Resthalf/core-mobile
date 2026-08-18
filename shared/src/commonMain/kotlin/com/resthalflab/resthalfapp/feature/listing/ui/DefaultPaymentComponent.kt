@@ -44,7 +44,7 @@ class DefaultPaymentComponent(
         if (_state.value.submitting) return
         scope.launch {
             _state.update { it.copy(submitting = true, error = null) }
-            when (val result = simulatePayment(args.orderId, args.amount)) {
+            when (val result = simulatePayment(args.bookingId)) {
                 is AppResult.Success ->
                     if (result.value.status.equals("ok", ignoreCase = true)) {
                         onPaid()

@@ -8,6 +8,37 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Generates ZentrumhubBuildConfig into commonMain from Gradle properties. Provide real values in
+// ~/.gradle/gradle.properties or via -P/env (ORG_GRADLE_PROJECT_*); committed defaults are empty so
+// no credentials live in VCS. Consumed by AppModule.
+val generateZentrumhubConfig = tasks.register("generateZentrumhubConfig") {
+    val accountId = providers.gradleProperty("zentrumhub.accountId").orElse("")
+    val apiKey = providers.gradleProperty("zentrumhub.apiKey").orElse("")
+    val channelId = providers.gradleProperty("zentrumhub.channelId").orElse("sandbox")
+    inputs.property("accountId", accountId)
+    inputs.property("apiKey", apiKey)
+    inputs.property("channelId", channelId)
+    val outDir = layout.buildDirectory.dir("generated/zentrumhub/kotlin")
+    outputs.dir(outDir)
+    doLast {
+        fun esc(s: String) = s.replace("\\", "\\\\").replace("\"", "\\\"").replace("$", "\\$")
+        val pkgDir = outDir.get().asFile.resolve("com/resthalflab/resthalfapp/core/network")
+        pkgDir.mkdirs()
+        pkgDir.resolve("ZentrumhubBuildConfig.kt").writeText(
+            """
+            package com.resthalflab.resthalfapp.core.network
+
+            // Generated from Gradle properties (zentrumhub.accountId / .apiKey / .channelId). Do NOT edit.
+            internal object ZentrumhubBuildConfig {
+                const val ACCOUNT_ID: String = "${esc(accountId.get())}"
+                const val API_KEY: String = "${esc(apiKey.get())}"
+                const val CHANNEL_ID: String = "${esc(channelId.get())}"
+            }
+            """.trimIndent() + "\n",
+        )
+    }
+}
+
 kotlin {
     listOf(
         iosArm64(),
@@ -36,10 +67,20 @@ kotlin {
     }
     
     sourceSets {
+        commonMain {
+            kotlin.srcDir(generateZentrumhubConfig)
+        }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.ktor.client.android)
             implementation(libs.koin.android)
+            // Google sign-in (Credential Manager) + Firebase Auth — used by the Android actual of
+            // the KMP Google sign-in. The google-services plugin + google-services.json live in
+            // :androidApp, which is enough for Firebase to auto-initialize at runtime.
+            implementation(libs.firebase.auth)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services)
+            implementation(libs.google.identity)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

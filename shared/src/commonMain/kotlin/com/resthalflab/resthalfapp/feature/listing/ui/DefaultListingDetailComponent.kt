@@ -35,7 +35,8 @@ class DefaultListingDetailComponent(
             stayTitle = SlotDisplay.title(selection.slotType),
             stayWindowLine = SlotDisplay.windowLine(selection.slotType),
             checkInOutLine = SlotDisplay.checkInOutLine(selection.slotType),
-            photoUrls = (1..6).map { "https://picsum.photos/seed/${selection.hotelId}_$it/900/600" },
+            // Offline: no remote photos — the detail hero falls back to the local illustration.
+            photoUrls = emptyList(),
             priceLabel = formatMoney(selection.price, selection.currency),
             bookButtonText = "Book ${SlotDisplay.title(selection.slotType)}",
         )
@@ -48,14 +49,7 @@ class DefaultListingDetailComponent(
         if (_state.value.submitting) return
         scope.launch {
             _state.update { it.copy(submitting = true, error = null) }
-            when (
-                val result = createBooking(
-                    selection.roomId,
-                    selection.slotType,
-                    selection.startTime,
-                    selection.endTime,
-                )
-            ) {
+            when (val result = createBooking(selection)) {
                 is AppResult.Success -> onBooked(
                     BookingConfirmationArgs(
                         bookingId = result.value.bookingId,

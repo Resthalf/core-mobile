@@ -119,10 +119,10 @@ class DefaultMainComponent(
                         )
                     )
                 } else {
-                    MainComponent.Child.Home(searchTabComponent(context, onOpenSearchResults))
+                    MainComponent.Child.Home(searchTabComponent(context, koin, onOpenSearchResults))
                 }
             Config.Bookings -> MainComponent.Child.Bookings(bookingsComponent(context, koin, onOpenBookingDetail))
-            Config.Favorites -> MainComponent.Child.Favorites(favoritesComponent(context))
+            Config.Favorites -> MainComponent.Child.Favorites(favoritesComponent(context, koin))
             Config.CheckIns -> MainComponent.Child.CheckIns(checkInsComponent(context, koin))
             Config.Rooms -> MainComponent.Child.Rooms(roomsComponent(context, koin))
             Config.Profile -> MainComponent.Child.Profile(profileComponent(context, koin))

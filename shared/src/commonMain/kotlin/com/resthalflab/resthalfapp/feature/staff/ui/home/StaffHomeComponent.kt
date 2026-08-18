@@ -9,6 +9,7 @@ import com.resthalflab.resthalfapp.feature.search.ui.home.HomeComponent
 import com.resthalflab.resthalfapp.feature.staff.domain.ConfirmVacateUseCase
 import com.resthalflab.resthalfapp.feature.staff.domain.GetRoomsUseCase
 import com.resthalflab.resthalfapp.feature.staff.domain.model.RoomStatus
+import com.resthalflab.resthalfapp.feature.wholesale.api.LocationSearchApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,7 @@ interface StaffHomeComponent {
 
 class DefaultStaffHomeComponent(
     componentContext: ComponentContext,
+    locationSearch: LocationSearchApi,
     onSearch: (SearchArgs) -> Unit,
     private val getRooms: GetRoomsUseCase,
     private val confirmVacate: ConfirmVacateUseCase,
@@ -47,6 +49,7 @@ class DefaultStaffHomeComponent(
 
     override val home: HomeComponent = DefaultHomeComponent(
         componentContext = componentContext,
+        locationSearch = locationSearch,
         onSearch = onSearch,
     )
 

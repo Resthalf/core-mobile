@@ -1,8 +1,10 @@
 package com.resthalflab.resthalfapp.feature.bookings
 
 import com.arkivanov.decompose.ComponentContext
-import com.resthalflab.resthalfapp.feature.bookings.data.BookingsRemote
-import com.resthalflab.resthalfapp.feature.bookings.data.DefaultBookingsRepository
+import com.resthalflab.resthalfapp.core.storage.SettingsFactory
+import com.resthalflab.resthalfapp.feature.bookings.api.LocalBookingStore
+import com.resthalflab.resthalfapp.feature.bookings.data.OfflineBookingsRepository
+import com.resthalflab.resthalfapp.feature.bookings.data.SettingsLocalBookingStore
 import com.resthalflab.resthalfapp.feature.bookings.domain.BookingsRepository
 import com.resthalflab.resthalfapp.feature.bookings.domain.CancelBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingByIdUseCase
@@ -17,8 +19,10 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 val bookingsModule: Module = module {
-    single { BookingsRemote(get()) }
-    single<BookingsRepository> { DefaultBookingsRepository(get(), get()) }
+    // On-device booking store (RestHalf backend retired). BookingsRemote + DefaultBookingsRepository
+    // stay in the tree for the future Zentrumhub Nexus migration.
+    single<LocalBookingStore> { SettingsLocalBookingStore(get<SettingsFactory>().create("resthalf.localbookings")) }
+    single<BookingsRepository> { OfflineBookingsRepository(get()) }
     factory { GetBookingsUseCase(get()) }
     factory { GetBookingByIdUseCase(get()) }
     factory { VacateBookingUseCase(get()) }
