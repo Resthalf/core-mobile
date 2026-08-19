@@ -38,7 +38,6 @@ decompose = "3.2.2"
 essenty = "2.2.1"
 
 # Image Loading
-kamel = "0.9.5"
 coil = "3.2.0"
 
 # Testing
@@ -112,7 +111,6 @@ essenty-backhandler = { module = "com.arkivanov.essenty:back-handler", version.r
 essenty-lifecycle-coroutines = { module = "com.arkivanov.essenty:lifecycle-coroutines", version.ref = "essenty" }
 
 # Image Loading
-kamel-image = { module = "media.kamel:kamel-image", version.ref = "kamel" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-ktor2 = { module = "io.coil-kt.coil3:coil-network-ktor2", version.ref = "coil" }
 
