@@ -47,7 +47,7 @@ private val networkModule: Module = module {
             apiKey = ZentrumhubBuildConfig.API_KEY,
             channelId = ZentrumhubBuildConfig.CHANNEL_ID,
             // TODO(wholesale): resolve the real device/public IP before production; hardcoded for now.
-            customerIp = "114.10.150.155",
+            customerIp = "114.10.153.62",
             logRequests = isDebugBuild(),
         )
     }

@@ -19,6 +19,8 @@ data class LocationSuggestion(
     val name: String,
     val fullName: String,
     val type: LocationType,
+    /** Raw provider type string ("City", "Region", "PointOfInterest", …) — drives search mode. */
+    val apiType: String = "",
     val country: String,
     val coordinates: Coordinates,
     /** Airport code, when [type] is [LocationType.AIRPORT]. */

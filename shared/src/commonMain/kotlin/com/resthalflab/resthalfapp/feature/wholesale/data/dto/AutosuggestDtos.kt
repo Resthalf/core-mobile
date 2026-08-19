@@ -38,6 +38,7 @@ fun LocationSuggestionDto.toDomain(): LocationSuggestion = LocationSuggestion(
     name = name,
     fullName = fullName ?: name,
     type = type.toLocationType(),
+    apiType = type.orEmpty(),
     country = country.orEmpty(),
     coordinates = coordinates?.let { Coordinates(it.lat, it.long) } ?: Coordinates(0.0, 0.0),
     code = code,

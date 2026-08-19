@@ -20,6 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.network.ktor2.KtorNetworkFetcherFactory
+import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.resthalflab.resthalfapp.app.MainComponent
@@ -41,6 +45,14 @@ import com.resthalflab.resthalfapp.feature.staff.ui.rooms.RoomsScreen
 
 @Composable
 fun App(rootComponent: RootComponent) {
+    // Configure the shared, cached image loader once. The Ktor fetcher makes network loading work on
+    // every platform (Android auto-detects it; iOS needs it registered explicitly).
+    setSingletonImageLoaderFactory { context ->
+        ImageLoader.Builder(context)
+            .components { add(KtorNetworkFetcherFactory()) }
+            .crossfade(true)
+            .build()
+    }
     ResthalfTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Children(stack = rootComponent.childStack) { child ->

@@ -1,0 +1,38 @@
+package com.resthalflab.resthalfapp.feature.wholesale.data
+
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.HotelContentRequestDto
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.HotelContentResponseDto
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.SearchInitRequestDto
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.SearchInitResponseDto
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.SearchResultsDto
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+
+/**
+ * Zentrumhub Nexus (authenticated) endpoints. The injected client already attaches accountId / apiKey
+ * / correlationId / customer-ip via its defaultRequest, so calls here just carry the payload.
+ */
+class NexusRemote(
+    private val client: HttpClient,
+) {
+    suspend fun searchInit(request: SearchInitRequestDto): SearchInitResponseDto =
+        client.post("api/hotel/availability/init") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    suspend fun searchResults(token: String): SearchResultsDto =
+        client.get("api/hotel/availability/async/$token/results").body()
+
+    /** Hotel content (names/images/star rating/address) for the same region as the search. */
+    suspend fun getHotelContent(request: HotelContentRequestDto): HotelContentResponseDto =
+        client.post("api/content/hotelcontent/getHotelContent") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+}

@@ -5,6 +5,7 @@ import com.resthalflab.resthalfapp.core.domain.AppResult
 import com.resthalflab.resthalfapp.feature.auth.api.AccountType
 import com.resthalflab.resthalfapp.feature.auth.api.AuthApi
 import com.resthalflab.resthalfapp.feature.auth.api.AuthSession
+import com.resthalflab.resthalfapp.feature.auth.api.GoogleAccount
 import com.resthalflab.resthalfapp.feature.auth.domain.LoginUseCase
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -35,6 +36,9 @@ private class FakeAuthApi(
         email: String,
         password: String,
     ): AppResult<Unit> = result
+
+    override suspend fun signInWithGoogle(account: GoogleAccount) {}
+    override fun continueAsGuest() {}
 
     override suspend fun logout() { sessionState.value = null }
 }

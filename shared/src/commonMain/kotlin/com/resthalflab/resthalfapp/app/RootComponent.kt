@@ -29,7 +29,7 @@ import com.resthalflab.resthalfapp.feature.listing.api.ListingDetailComponent
 import com.resthalflab.resthalfapp.feature.listing.api.PaymentComponent
 import com.resthalflab.resthalfapp.feature.listing.api.RoomSelection
 import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
-import com.resthalflab.resthalfapp.feature.search.domain.SearchHotelsUseCase
+import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleSearchApi
 import com.resthalflab.resthalfapp.feature.search.ui.results.DefaultResultsComponent
 import com.resthalflab.resthalfapp.feature.search.ui.results.ResultsComponent
 import kotlinx.coroutines.Dispatchers
@@ -101,10 +101,9 @@ class DefaultRootComponent(
             is Config.SearchResults -> RootComponent.Child.SearchResults(
                 DefaultResultsComponent(
                     componentContext = context,
-                    searchHotels = koin.get<SearchHotelsUseCase>(),
+                    wholesaleSearch = koin.get<WholesaleSearchApi>(),
                     favorites = koin.get<FavoritesRepository>(),
                     args = config.args,
-                    onOpenRoom = { selection -> navigation.push(Config.ListingDetail(selection)) },
                     onBack = { navigation.pop() },
                 )
             )

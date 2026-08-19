@@ -19,23 +19,18 @@ import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.resthalflab.resthalfapp.core.design.RhSpacing
 import com.resthalflab.resthalfapp.core.design.components.RhBrandTopBar
 import com.resthalflab.resthalfapp.core.design.components.RhFeatureHighlight
 import com.resthalflab.resthalfapp.core.design.components.RhIllustrationPlaceholder
 import com.resthalflab.resthalfapp.core.design.components.RhSectionHeader
-import com.resthalflab.resthalfapp.feature.search.domain.searchButtonText
 
 @Composable
 fun HomeScreen(component: HomeComponent) {
-    val state by component.state.collectAsStateWithLifecycle()
-
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
     ) {
@@ -45,7 +40,7 @@ fun HomeScreen(component: HomeComponent) {
 
         SearchPlanner(
             component = component,
-            searchButtonText = state.slotType.searchButtonText(),
+            searchButtonText = "Search Hotels",
         )
 
         WhyBook()
