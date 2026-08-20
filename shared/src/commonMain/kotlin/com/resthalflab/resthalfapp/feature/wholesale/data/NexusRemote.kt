@@ -2,6 +2,8 @@ package com.resthalflab.resthalfapp.feature.wholesale.data
 
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.HotelContentRequestDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.HotelContentResponseDto
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.RoomsAndRatesRequestDto
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.RoomsAndRatesResponseDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.SearchInitRequestDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.SearchInitResponseDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.SearchResultsDto
@@ -32,6 +34,17 @@ class NexusRemote(
     /** Hotel content (names/images/star rating/address) for the same region as the search. */
     suspend fun getHotelContent(request: HotelContentRequestDto): HotelContentResponseDto =
         client.post("api/content/hotelcontent/getHotelContent") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    /** Rooms & rates for one hotel, keyed by the availability search [token]. */
+    suspend fun roomsAndRates(
+        hotelId: String,
+        token: String,
+        request: RoomsAndRatesRequestDto = RoomsAndRatesRequestDto(),
+    ): RoomsAndRatesResponseDto =
+        client.post("api/hotel/$hotelId/roomsandrates/$token") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()

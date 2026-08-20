@@ -7,6 +7,7 @@ import com.resthalflab.resthalfapp.feature.wholesale.api.LocationSuggestion
 import com.resthalflab.resthalfapp.feature.wholesale.api.Occupancy
 import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleHotel
 import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleSearchApi
+import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleSearchResult
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.CircularRegionDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.CoordinatesDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.HotelContentDto
@@ -39,7 +40,7 @@ class DefaultWholesaleSearchApi(
         checkIn: String,
         checkOut: String,
         occupancy: Occupancy,
-    ): AppResult<List<WholesaleHotel>> = safeApiCall {
+    ): AppResult<WholesaleSearchResult> = safeApiCall {
         withContext(Dispatchers.Default) {
             val nights = nightsBetween(checkIn, checkOut)
             val (polygon, circular) = buildRegion(location)
@@ -49,6 +50,8 @@ class DefaultWholesaleSearchApi(
             ).token
             val results = pollResults(token)
             val currency = results.currency?.takeIf { it.isNotBlank() } ?: CURRENCY
+            // The token used to fetch rooms & rates for a hotel — prefer the one echoed by results.
+            val searchToken = results.token?.takeIf { it.isNotBlank() } ?: token
 
             // Content is looked up by the ids the search returned (content-by-region 204s). Best-effort:
             // a failure/empty just leaves names/images blank rather than dropping the results.
@@ -61,10 +64,12 @@ class DefaultWholesaleSearchApi(
                 }.getOrElse { emptyMap() }
             }
 
-            results.hotels
+            val hotels = results.hotels
                 .filter { it.rate != null }
                 .map { it.toWholesaleHotel(currency = currency, nights = nights, content = content[it.id]) }
                 .sortedBy { it.perNightRate }
+
+            WholesaleSearchResult(token = searchToken, hotels = hotels)
         }
     }
 

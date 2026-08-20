@@ -3,8 +3,10 @@ package com.resthalflab.resthalfapp.feature.wholesale
 import com.resthalflab.resthalfapp.core.network.ZENTRUMHUB_AUTOSUGGEST_CLIENT
 import com.resthalflab.resthalfapp.core.network.ZENTRUMHUB_NEXUS_CLIENT
 import com.resthalflab.resthalfapp.feature.wholesale.api.LocationSearchApi
+import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleDetailApi
 import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleSearchApi
 import com.resthalflab.resthalfapp.feature.wholesale.data.DefaultLocationSearchApi
+import com.resthalflab.resthalfapp.feature.wholesale.data.DefaultWholesaleDetailApi
 import com.resthalflab.resthalfapp.feature.wholesale.data.DefaultWholesaleSearchApi
 import com.resthalflab.resthalfapp.feature.wholesale.data.LocationRemote
 import com.resthalflab.resthalfapp.feature.wholesale.data.NexusRemote
@@ -17,4 +19,5 @@ val wholesaleModule: Module = module {
     single { NexusRemote(get(named(ZENTRUMHUB_NEXUS_CLIENT))) }
     single<LocationSearchApi> { DefaultLocationSearchApi(get()) }
     single<WholesaleSearchApi> { DefaultWholesaleSearchApi(get(), get(), get()) }
+    single<WholesaleDetailApi> { DefaultWholesaleDetailApi(get(), get()) }
 }

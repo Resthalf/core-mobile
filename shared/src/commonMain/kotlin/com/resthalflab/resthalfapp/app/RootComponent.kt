@@ -28,7 +28,11 @@ import com.resthalflab.resthalfapp.feature.listing.api.ListingComponentFactory
 import com.resthalflab.resthalfapp.feature.listing.api.ListingDetailComponent
 import com.resthalflab.resthalfapp.feature.listing.api.PaymentComponent
 import com.resthalflab.resthalfapp.feature.listing.api.RoomSelection
+import com.resthalflab.resthalfapp.feature.search.api.HotelDetailArgs
 import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
+import com.resthalflab.resthalfapp.feature.search.ui.detail.DefaultHotelDetailComponent
+import com.resthalflab.resthalfapp.feature.search.ui.detail.HotelDetailComponent
+import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleDetailApi
 import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleSearchApi
 import com.resthalflab.resthalfapp.feature.search.ui.results.DefaultResultsComponent
 import com.resthalflab.resthalfapp.feature.search.ui.results.ResultsComponent
@@ -45,6 +49,7 @@ interface RootComponent {
         data class Login(val component: WelcomeComponent) : Child
         data class Main(val component: MainComponent) : Child
         data class SearchResults(val component: ResultsComponent) : Child
+        data class HotelDetail(val component: HotelDetailComponent) : Child
         data class ListingDetail(val component: ListingDetailComponent) : Child
         data class Payment(val component: PaymentComponent) : Child
         data class BookingConfirmation(val component: BookingConfirmationComponent) : Child
@@ -102,6 +107,17 @@ class DefaultRootComponent(
                 DefaultResultsComponent(
                     componentContext = context,
                     wholesaleSearch = koin.get<WholesaleSearchApi>(),
+                    favorites = koin.get<FavoritesRepository>(),
+                    args = config.args,
+                    onBack = { navigation.pop() },
+                    onOpenDetail = { args -> navigation.push(Config.HotelDetail(args)) },
+                )
+            )
+
+            is Config.HotelDetail -> RootComponent.Child.HotelDetail(
+                DefaultHotelDetailComponent(
+                    componentContext = context,
+                    detailApi = koin.get<WholesaleDetailApi>(),
                     favorites = koin.get<FavoritesRepository>(),
                     args = config.args,
                     onBack = { navigation.pop() },
@@ -181,6 +197,9 @@ class DefaultRootComponent(
 
         @Serializable
         data class SearchResults(val args: SearchArgs) : Config
+
+        @Serializable
+        data class HotelDetail(val args: HotelDetailArgs) : Config
 
         @Serializable
         data class ListingDetail(val selection: RoomSelection) : Config

@@ -140,19 +140,91 @@ data class HotelContentDto(
     val attributes: List<ContentAttributeDto>? = null,
     // Raw so an unexpected facilities shape can't break the whole content parse; names extracted best-effort.
     val facilities: JsonElement? = null,
+    // Detail page fields (fetched with contentFields=["All"]).
+    val descriptions: List<ContentDescriptionDto>? = null,
+    val facilityGroups: List<ContentFacilityGroupDto>? = null,
+    val reviews: List<ContentReviewDto>? = null,
+    val geoCode: ContentGeoCodeDto? = null,
+    val nearByAttractions: List<ContentNearbyDto>? = null,
+    val checkinInfo: ContentCheckinInfoDto? = null,
+    val checkoutInfo: ContentCheckoutInfoDto? = null,
+    val policies: List<ContentPolicyDto>? = null,
+    // Provider rooms — used to backfill room thumbnails when standardizedRooms carry no images.
+    val rooms: List<ContentRoomDto>? = null,
 )
 
 @Serializable
 data class ContentAttributeDto(val key: String? = null, val value: String? = null)
 
 @Serializable
+data class ContentDescriptionDto(val type: String? = null, val text: String? = null)
+
+/** Grouped facility labels (e.g. "Swimming Pool", "Breakfast"); [type] is "Hotel" or "Room". */
+@Serializable
+data class ContentFacilityGroupDto(
+    val id: String? = null,
+    val name: String? = null,
+    val type: String? = null,
+)
+
+@Serializable
+data class ContentReviewDto(
+    val provider: String? = null,
+    val count: String? = null,
+    val rating: String? = null,
+    val categoryratings: List<ContentCategoryRatingDto>? = null,
+)
+
+@Serializable
+data class ContentCategoryRatingDto(val category: String? = null, val rating: String? = null)
+
+@Serializable
 data class ContentContactDto(val address: ContentAddressDto? = null)
 
 @Serializable
-data class ContentAddressDto(val line1: String? = null, val city: ContentCityDto? = null)
+data class ContentAddressDto(
+    val line1: String? = null,
+    val city: ContentCityDto? = null,
+    val state: ContentCityDto? = null,
+    val country: ContentCountryDto? = null,
+    val postalCode: String? = null,
+)
 
 @Serializable
 data class ContentCityDto(val name: String? = null)
+
+@Serializable
+data class ContentCountryDto(val code: String? = null, val name: String? = null)
+
+@Serializable
+data class ContentGeoCodeDto(val lat: String? = null, val long: String? = null)
+
+@Serializable
+data class ContentNearbyDto(
+    val name: String? = null,
+    val distance: String? = null,
+    val unit: String? = null,
+)
+
+@Serializable
+data class ContentCheckinInfoDto(
+    val beginTime: String? = null,
+    val endTime: String? = null,
+    val minAge: String? = null,
+)
+
+@Serializable
+data class ContentCheckoutInfoDto(val time: String? = null)
+
+@Serializable
+data class ContentPolicyDto(val type: String? = null, val text: String? = null)
+
+/** A provider room's images — [roomId] matches standardizedRooms' mappedRoomRates.roomCode. */
+@Serializable
+data class ContentRoomDto(
+    val roomId: String? = null,
+    val image: List<RoomImageDto> = emptyList(),
+)
 
 /**
  * Maps a raw search result (rate/options) merged with optional [content] (name/image/rating/address)

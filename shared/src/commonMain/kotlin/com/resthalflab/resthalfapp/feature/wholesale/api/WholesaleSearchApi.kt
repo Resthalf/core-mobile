@@ -12,5 +12,5 @@ interface WholesaleSearchApi {
         checkIn: String, // ISO yyyy-MM-dd
         checkOut: String, // ISO yyyy-MM-dd
         occupancy: Occupancy,
-    ): AppResult<List<WholesaleHotel>>
+    ): AppResult<WholesaleSearchResult>
 }

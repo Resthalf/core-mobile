@@ -38,6 +38,7 @@ import com.resthalflab.resthalfapp.feature.listing.ui.ListingDetailScreen
 import com.resthalflab.resthalfapp.feature.listing.ui.PaymentScreen
 import com.resthalflab.resthalfapp.feature.profile.ui.ProfileScreen
 import com.resthalflab.resthalfapp.feature.search.ui.SearchTab
+import com.resthalflab.resthalfapp.feature.search.ui.detail.HotelDetailScreen
 import com.resthalflab.resthalfapp.feature.search.ui.results.ResultsScreen
 import com.resthalflab.resthalfapp.feature.staff.ui.checkins.CheckInsScreen
 import com.resthalflab.resthalfapp.feature.staff.ui.home.StaffHomeScreen
@@ -60,6 +61,7 @@ fun App(rootComponent: RootComponent) {
                     is RootComponent.Child.Login -> WelcomeScreen(instance.component)
                     is RootComponent.Child.Main -> MainScreen(instance.component)
                     is RootComponent.Child.SearchResults -> ResultsScreen(instance.component)
+                    is RootComponent.Child.HotelDetail -> HotelDetailScreen(instance.component)
                     is RootComponent.Child.ListingDetail -> ListingDetailScreen(instance.component)
                     is RootComponent.Child.Payment -> PaymentScreen(instance.component)
                     is RootComponent.Child.BookingConfirmation -> BookingConfirmationScreen(instance.component)

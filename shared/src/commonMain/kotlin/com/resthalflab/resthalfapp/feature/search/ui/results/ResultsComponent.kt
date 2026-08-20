@@ -5,6 +5,7 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.resthalflab.resthalfapp.core.domain.AppResult
 import com.resthalflab.resthalfapp.feature.favorites.api.FavoriteHotel
 import com.resthalflab.resthalfapp.feature.favorites.api.FavoritesRepository
+import com.resthalflab.resthalfapp.feature.search.api.HotelDetailArgs
 import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
 import com.resthalflab.resthalfapp.feature.wholesale.api.Occupancy
 import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleHotel
@@ -27,6 +28,7 @@ interface ResultsComponent {
     val favoriteHotelIds: StateFlow<Set<String>>
 
     fun onToggleFavorite(hotel: WholesaleHotel)
+    fun onViewHotel(hotel: WholesaleHotel)
     fun onBackClicked()
     fun onRetry()
 
@@ -46,11 +48,15 @@ class DefaultResultsComponent(
     private val favorites: FavoritesRepository,
     private val args: SearchArgs,
     private val onBack: () -> Unit,
+    private val onOpenDetail: (HotelDetailArgs) -> Unit,
 ) : ResultsComponent, ComponentContext by componentContext {
 
     private val scope = coroutineScope(Dispatchers.Main)
     private val checkIn = args.checkIn.ifBlank { args.date }
     private val checkOut = args.checkOut.ifBlank { args.date }
+
+    // Search-session token needed to fetch rooms & rates for a chosen hotel.
+    private var searchToken: String = ""
 
     private val _state = MutableStateFlow(
         ResultsComponent.UiState(
@@ -81,7 +87,11 @@ class DefaultResultsComponent(
         scope.launch {
             _state.update { it.copy(loading = true, error = null) }
             when (val result = wholesaleSearch.searchHotels(location, checkIn, checkOut, args.occupancy)) {
-                is AppResult.Success -> _state.update { it.copy(loading = false, results = result.value) }
+                is AppResult.Success -> {
+                    searchToken = result.value.token
+                    _state.update { it.copy(loading = false, results = result.value.hotels) }
+                }
+
                 is AppResult.Failure -> _state.update { it.copy(loading = false, error = result.error.message) }
             }
         }
@@ -96,6 +106,25 @@ class DefaultResultsComponent(
                 slotLabel = hotel.category ?: "Hotel",
                 fromPrice = hotel.perNightRate,
                 currency = hotel.currency,
+            )
+        )
+    }
+
+    override fun onViewHotel(hotel: WholesaleHotel) {
+        if (searchToken.isBlank()) return
+        onOpenDetail(
+            HotelDetailArgs(
+                hotelId = hotel.id,
+                hotelName = hotel.name ?: "Hotel",
+                heroImage = hotel.imageUrl,
+                starRating = hotel.rating?.toInt(),
+                reviewCount = hotel.reviewsCount,
+                address = hotel.address,
+                category = hotel.category,
+                currency = hotel.currency,
+                searchToken = searchToken,
+                checkIn = checkIn,
+                checkOut = checkOut,
             )
         )
     }

@@ -111,7 +111,7 @@ fun ResultsScreen(component: ResultsComponent) {
                             hotel = hotel,
                             isFavorite = hotel.id in favoriteIds,
                             onToggleFavorite = { component.onToggleFavorite(hotel) },
-                            onView = { /* Phase 2: rooms & rates */ },
+                            onView = { component.onViewHotel(hotel) },
                         )
                     }
                 }
