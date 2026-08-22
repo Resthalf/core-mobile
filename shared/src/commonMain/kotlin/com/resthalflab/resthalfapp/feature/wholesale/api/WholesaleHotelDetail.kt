@@ -50,7 +50,7 @@ data class RoomOffer(
     val bedInfo: String?,
     val maxGuests: Int?,
     val facilities: List<String>,
-    val imageUrl: String?,
+    val images: List<String>,
     val options: List<RoomRateOption>,
 )
 

@@ -15,6 +15,8 @@ import com.resthalflab.resthalfapp.feature.wholesale.data.dto.ContentDescription
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.ContentRoomDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.HotelContentDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.HotelContentRequestDto
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.RoomImageDto
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.RoomImageLinkDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.RoomsAndRatesResponseDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.StandardizedRoomDto
 import kotlinx.coroutines.Dispatchers
@@ -155,7 +157,7 @@ class DefaultWholesaleDetailApi(
                 maxGuests = room.maxGuestAllowed?.toIntOrNull(),
                 facilities = room.facilities.mapNotNull { it.name?.trim()?.ifBlank { null } }
                     .distinct().take(ROOM_FACILITIES),
-                imageUrl = room.heroImage() ?: contentRoomImage(room, contentRoomsById),
+                images = room.imageUrls().ifEmpty { contentRoomImages(room, contentRoomsById) },
                 options = options,
             )
         }.sortedBy { it.options.firstOrNull()?.totalRate ?: Int.MAX_VALUE }
@@ -219,16 +221,19 @@ private fun HotelContentDto?.accommodationRules(): AccommodationRules? {
     return AccommodationRules(checkInTime = checkIn, checkOutTime = checkOut, policies = policyItems)
 }
 
-private fun contentRoomImage(room: StandardizedRoomDto, byId: Map<String, ContentRoomDto>): String? {
+/** Backfill from the content provider room (matched by roomCode) when standardized images are empty. */
+private fun contentRoomImages(room: StandardizedRoomDto, byId: Map<String, ContentRoomDto>): List<String> {
     val codes = room.mappedRoomRates.mapNotNull { it.roomCode?.trim()?.ifBlank { null } }
-    val match = codes.firstNotNullOfOrNull { byId[it] } ?: return null
-    val links = match.image.firstOrNull()?.links ?: return null
-    return (
-        links.firstOrNull { it.size.equals("Xs", ignoreCase = true) }
-            ?: links.firstOrNull { it.size.equals("Standard", ignoreCase = true) }
-            ?: links.firstOrNull()
-        )?.url
+    val match = codes.firstNotNullOfOrNull { byId[it] } ?: return emptyList()
+    return match.image.flatMap { it.imageUrls() }.distinct()
 }
+
+private fun List<RoomImageLinkDto>.bestUrl(): String? =
+    (
+        firstOrNull { it.size.equals("Standard", ignoreCase = true) }
+            ?: firstOrNull { it.size.equals("Xxl", ignoreCase = true) }
+            ?: firstOrNull()
+        )?.url?.trim()?.ifBlank { null }
 
 /** Parses the raw `facilities` array (objects with a `name`, or plain strings) into labels. */
 private fun JsonElement?.parseFacilityNames(): List<String> {
@@ -266,10 +271,18 @@ private fun String.stripHtml(): String =
         .replace(Regex("\\s+"), " ")
         .trim()
 
-private fun StandardizedRoomDto.heroImage(): String? {
-    val links = images.firstOrNull()?.links ?: return null
-    return (links.firstOrNull { it.size.equals("Standard", ignoreCase = true) } ?: links.firstOrNull())
-        ?.url
+private fun StandardizedRoomDto.imageUrls(): List<String> =
+    images.flatMap { it.imageUrls() }.distinct()
+
+/**
+ * URLs from one image object. Providers differ: some send several `links` that are size-variants of
+ * the SAME photo (they carry a `size`) — pick the best one; others send `links` that are each a
+ * DISTINCT photo (no `size`) — take them all.
+ */
+private fun RoomImageDto.imageUrls(): List<String> {
+    val hasSizes = links.any { !it.size.isNullOrBlank() }
+    return if (hasSizes) listOfNotNull(links.bestUrl())
+    else links.mapNotNull { it.url?.trim()?.ifBlank { null } }
 }
 
 private fun String?.includesBreakfast(): Boolean = when {

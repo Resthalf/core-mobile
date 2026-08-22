@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,14 +41,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.resthalflab.resthalfapp.core.design.RhSpacing
 import com.resthalflab.resthalfapp.core.design.RhStarGold
 import com.resthalflab.resthalfapp.core.design.RhSuccess
-import com.resthalflab.resthalfapp.core.design.components.RhCard
 import com.resthalflab.resthalfapp.core.design.components.RhIllustrationPlaceholder
 import com.resthalflab.resthalfapp.core.design.components.RhRemoteImage
 import com.resthalflab.resthalfapp.core.design.components.RhTag
@@ -190,15 +190,17 @@ private fun HotelCard(
     onToggleFavorite: () -> Unit,
     onView: () -> Unit,
 ) {
-    RhCard(modifier = Modifier.fillMaxWidth(), contentPadding = RhSpacing.md) {
-        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            Box(
-                modifier = Modifier
-                    .width(112.dp)
-                    .fillMaxHeight()
-                    .heightIn(min = 120.dp)
-                    .clip(RoundedCornerShape(14.dp)),
-            ) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp,
+    ) {
+        HotelCardBody(
+            imageWidth = 112.dp,
+            modifier = Modifier.padding(RhSpacing.sm),
+            image = {
+                Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))) {
                 if (hotel.imageUrl != null) {
                     RhRemoteImage(url = hotel.imageUrl, contentDescription = hotel.name, modifier = Modifier.fillMaxSize())
                 } else {
@@ -233,9 +235,10 @@ private fun HotelCard(
                         }
                     }
                 }
-            }
-
-            Column(modifier = Modifier.weight(1f).padding(start = RhSpacing.md)) {
+                }
+            },
+            content = {
+                Column(modifier = Modifier.padding(start = RhSpacing.md)) {
                 Row(verticalAlignment = Alignment.Top) {
                     Text(
                         text = (hotel.category ?: "Hotel").uppercase(),
@@ -261,7 +264,10 @@ private fun HotelCard(
                 )
                 if (hotel.facilities.isNotEmpty()) {
                     Spacer(Modifier.height(RhSpacing.xs))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(RhSpacing.xs)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(RhSpacing.xs),
+                        verticalArrangement = Arrangement.spacedBy(RhSpacing.xs),
+                    ) {
                         hotel.facilities.take(3).forEach { facility ->
                             RhTag(
                                 text = facility,
@@ -316,7 +322,34 @@ private fun HotelCard(
                         Text("View", style = MaterialTheme.typography.labelMedium)
                     }
                 }
-            }
+                }
+            },
+        )
+    }
+}
+
+/**
+ * Card row that draws [image] beside [content] and sizes the image to the content's measured height,
+ * so the image always fills the card — no bottom gap, no clipping — no matter how the text/chips wrap.
+ */
+@Composable
+private fun HotelCardBody(
+    imageWidth: Dp,
+    modifier: Modifier = Modifier,
+    image: @Composable () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Layout(contents = listOf(image, content), modifier = modifier) { (imageMeasurables, contentMeasurables), constraints ->
+        val imageWidthPx = imageWidth.roundToPx()
+        val contentWidth = (constraints.maxWidth - imageWidthPx).coerceAtLeast(0)
+        val contentPlaceable = contentMeasurables.first().measure(
+            constraints.copy(minWidth = contentWidth, maxWidth = contentWidth),
+        )
+        val height = contentPlaceable.height
+        val imagePlaceable = imageMeasurables.first().measure(Constraints.fixed(imageWidthPx, height))
+        layout(constraints.maxWidth, height) {
+            imagePlaceable.place(0, 0)
+            contentPlaceable.place(imageWidthPx, 0)
         }
     }
 }

@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -173,10 +175,21 @@ private fun LoadedContent(
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val overlayOffsetPx = with(density) { (statusTop + 104.dp).roundToPx() }
 
-    // Sections start at list index 1 (index 0 is the hero + header).
-    val selectedTab by remember(sections) {
-        derivedStateOf { (listState.firstVisibleItemIndex - 1).coerceIn(0, (sections.size - 1).coerceAtLeast(0)) }
+    // Active list item under the sticky overlay (index 0 = hero, 1..N = tabbed sections, N+1 = Room
+    // Details). Uses layoutInfo (not firstVisibleItemIndex) so the negative jump offset doesn't leave
+    // the indicator one tab behind. When the reader is in Room Details, no tab is active.
+    val activeItemIndex by remember(sections, overlayOffsetPx) {
+        derivedStateOf {
+            val info = listState.layoutInfo
+            val threshold = info.viewportStartOffset + overlayOffsetPx
+            (
+                info.visibleItemsInfo.lastOrNull { it.index >= 1 && it.offset <= threshold + 1 }
+                    ?: info.visibleItemsInfo.firstOrNull { it.index >= 1 }
+                )?.index ?: 1
+        }
     }
+    val selectedTab = (activeItemIndex - 1).coerceIn(0, (sections.size - 1).coerceAtLeast(0))
+    val inRoomsSection = activeItemIndex > sections.size
     val collapseAlpha by remember {
         derivedStateOf {
             if (listState.firstVisibleItemIndex > 0) 1f
@@ -205,7 +218,6 @@ private fun LoadedContent(
             SectionContent(
                 key = key,
                 state = state,
-                onSeeRooms = onSeeRooms,
                 onShowAllHighlights = onShowAllHighlights,
                 onShowAllFacilities = onShowAllFacilities,
             )
@@ -242,7 +254,12 @@ private fun LoadedContent(
                         tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     )
                 }
-                RhScrollableTabs(tabs = tabLabels, selectedIndex = selectedTab, onTabSelected = jumpTo)
+                RhScrollableTabs(
+                    tabs = tabLabels,
+                    selectedIndex = selectedTab,
+                    onTabSelected = jumpTo,
+                    showIndicator = !inRoomsSection,
+                )
             }
         }
     }
@@ -271,12 +288,11 @@ private fun sectionsFor(state: HotelDetailComponent.UiState): List<SectionKey> =
 private fun SectionContent(
     key: SectionKey,
     state: HotelDetailComponent.UiState,
-    onSeeRooms: () -> Unit,
     onShowAllHighlights: () -> Unit,
     onShowAllFacilities: () -> Unit,
 ) {
     when (key) {
-        SectionKey.Overview -> OverviewSection(state, onSeeRooms, onShowAllHighlights)
+        SectionKey.Overview -> OverviewSection(state, onShowAllHighlights)
         SectionKey.Reviews -> ReviewsSection(state)
         SectionKey.Facilities -> FacilitiesSection(state, onShowAllFacilities)
         SectionKey.Location -> LocationSection(state)
@@ -375,7 +391,6 @@ private fun SectionCard(
 @Composable
 private fun OverviewSection(
     state: HotelDetailComponent.UiState,
-    onSeeRooms: () -> Unit,
     onShowAllHighlights: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = RhSpacing.lg, vertical = RhSpacing.sm)) {
@@ -425,9 +440,6 @@ private fun OverviewSection(
                 Spacer(Modifier.height(RhSpacing.xs))
                 state.highlights.forEach { IconLabelRow(it) }
             }
-
-            Spacer(Modifier.height(RhSpacing.lg))
-            RhButton(text = "See rooms", onClick = onSeeRooms, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -600,16 +612,43 @@ private fun RoomsSection(rooms: List<RoomOffer>, onSelect: (RoomOffer, RoomRateO
     }
 }
 
+@Composable
+private fun RoomImageCarousel(images: List<String>, contentDescription: String?) {
+    val shape = RoundedCornerShape(12.dp)
+    if (images.size == 1) {
+        RhRemoteImage(
+            url = images[0],
+            contentDescription = contentDescription,
+            modifier = Modifier.fillMaxWidth().height(180.dp).clip(shape),
+        )
+        return
+    }
+    val pagerState = rememberPagerState(pageCount = { images.size })
+    Box(modifier = Modifier.fillMaxWidth().height(180.dp).clip(shape)) {
+        HorizontalPager(state = pagerState, modifier = Modifier.matchParentSize()) { page ->
+            RhRemoteImage(url = images[page], contentDescription = contentDescription, modifier = Modifier.fillMaxSize())
+        }
+        Surface(
+            modifier = Modifier.align(Alignment.BottomEnd).padding(RhSpacing.sm),
+            shape = RoundedCornerShape(50),
+            color = Color.Black.copy(alpha = 0.55f),
+        ) {
+            Text(
+                text = "${pagerState.currentPage + 1}/${images.size}",
+                modifier = Modifier.padding(horizontal = RhSpacing.sm, vertical = 2.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RoomCard(room: RoomOffer, onSelect: (RoomOffer, RoomRateOption) -> Unit) {
     RhCard(modifier = Modifier.fillMaxWidth(), contentPadding = RhSpacing.md) {
-        if (room.imageUrl != null) {
-            RhRemoteImage(
-                url = room.imageUrl,
-                contentDescription = room.name,
-                modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(12.dp)),
-            )
+        if (room.images.isNotEmpty()) {
+            RoomImageCarousel(images = room.images, contentDescription = room.name)
             Spacer(Modifier.height(RhSpacing.sm))
         }
         Text(
