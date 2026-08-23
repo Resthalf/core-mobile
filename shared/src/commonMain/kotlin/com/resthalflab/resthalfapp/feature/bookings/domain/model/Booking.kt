@@ -18,6 +18,8 @@ data class Booking(
     val endTime: String,
     // Active delegation id — required to vacate the room. Null when there's no active stay.
     val delegationId: String? = null,
+    val tags: List<String> = emptyList(),
+    val guestsLabel: String = "",
 )
 
 enum class BookingStatus { Pending, Confirmed, Active, Completed, Cancelled, Overstayed, InternalError }

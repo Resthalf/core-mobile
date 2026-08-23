@@ -1,7 +1,10 @@
 package com.resthalflab.resthalfapp.feature.wholesale.data
 
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.BookRequestDto
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.BookResponseDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.HotelContentRequestDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.HotelContentResponseDto
+import com.resthalflab.resthalfapp.feature.wholesale.data.dto.PriceCheckResponseDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.RoomsAndRatesRequestDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.RoomsAndRatesResponseDto
 import com.resthalflab.resthalfapp.feature.wholesale.data.dto.SearchInitRequestDto
@@ -45,6 +48,28 @@ class NexusRemote(
         request: RoomsAndRatesRequestDto = RoomsAndRatesRequestDto(),
     ): RoomsAndRatesResponseDto =
         client.post("api/hotel/$hotelId/roomsandrates/$token") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    /** Re-price the chosen recommendation just before booking. */
+    suspend fun priceCheck(
+        hotelId: String,
+        token: String,
+        recommendationId: String,
+    ): PriceCheckResponseDto =
+        client.get("api/hotel/$hotelId/$token/price/recommendation/$recommendationId").body()
+
+    /** Hold the booking session on the provider (pre-payment). */
+    suspend fun bookInit(hotelId: String, token: String, request: BookRequestDto): BookResponseDto =
+        client.post("api/hotel/$hotelId/$token/bookinit") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+
+    /** Confirm the booking (post-payment). */
+    suspend fun book(hotelId: String, token: String, request: BookRequestDto): BookResponseDto =
+        client.post("api/hotel/$hotelId/$token/book") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()

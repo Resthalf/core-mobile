@@ -18,6 +18,7 @@ import com.resthalflab.resthalfapp.feature.bookings.domain.GetBookingByIdUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.GetCancelPreviewUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.RescheduleBookingUseCase
 import com.resthalflab.resthalfapp.feature.bookings.domain.VacateBookingUseCase
+import com.resthalflab.resthalfapp.feature.bookings.api.LocalBookingStore
 import com.resthalflab.resthalfapp.feature.bookings.domain.model.Booking
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.BookingDetailComponent
 import com.resthalflab.resthalfapp.feature.bookings.ui.detail.DefaultBookingDetailComponent
@@ -28,10 +29,14 @@ import com.resthalflab.resthalfapp.feature.listing.api.ListingComponentFactory
 import com.resthalflab.resthalfapp.feature.listing.api.ListingDetailComponent
 import com.resthalflab.resthalfapp.feature.listing.api.PaymentComponent
 import com.resthalflab.resthalfapp.feature.listing.api.RoomSelection
+import com.resthalflab.resthalfapp.feature.search.api.CheckoutArgs
 import com.resthalflab.resthalfapp.feature.search.api.HotelDetailArgs
 import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
+import com.resthalflab.resthalfapp.feature.search.ui.checkout.CheckoutComponent
+import com.resthalflab.resthalfapp.feature.search.ui.checkout.DefaultCheckoutComponent
 import com.resthalflab.resthalfapp.feature.search.ui.detail.DefaultHotelDetailComponent
 import com.resthalflab.resthalfapp.feature.search.ui.detail.HotelDetailComponent
+import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleBookingApi
 import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleDetailApi
 import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleSearchApi
 import com.resthalflab.resthalfapp.feature.search.ui.results.DefaultResultsComponent
@@ -50,6 +55,7 @@ interface RootComponent {
         data class Main(val component: MainComponent) : Child
         data class SearchResults(val component: ResultsComponent) : Child
         data class HotelDetail(val component: HotelDetailComponent) : Child
+        data class Checkout(val component: CheckoutComponent) : Child
         data class ListingDetail(val component: ListingDetailComponent) : Child
         data class Payment(val component: PaymentComponent) : Child
         data class BookingConfirmation(val component: BookingConfirmationComponent) : Child
@@ -121,6 +127,19 @@ class DefaultRootComponent(
                     favorites = koin.get<FavoritesRepository>(),
                     args = config.args,
                     onBack = { navigation.pop() },
+                    onOpenCheckout = { args -> navigation.push(Config.Checkout(args)) },
+                )
+            )
+
+            is Config.Checkout -> RootComponent.Child.Checkout(
+                DefaultCheckoutComponent(
+                    componentContext = context,
+                    bookingApi = koin.get<WholesaleBookingApi>(),
+                    bookingStore = koin.get<LocalBookingStore>(),
+                    args = config.args,
+                    onExit = { navigation.pop() },
+                    // Booking done → reset to the tab shell (drops checkout/detail/results).
+                    onFinished = { navigation.navigate { stack -> stackUpToMain(stack) } },
                 )
             )
 
@@ -200,6 +219,9 @@ class DefaultRootComponent(
 
         @Serializable
         data class HotelDetail(val args: HotelDetailArgs) : Config
+
+        @Serializable
+        data class Checkout(val args: CheckoutArgs) : Config
 
         @Serializable
         data class ListingDetail(val selection: RoomSelection) : Config

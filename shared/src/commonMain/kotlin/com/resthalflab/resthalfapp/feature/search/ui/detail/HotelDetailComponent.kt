@@ -5,6 +5,7 @@ import com.arkivanov.essenty.lifecycle.coroutines.coroutineScope
 import com.resthalflab.resthalfapp.core.domain.AppResult
 import com.resthalflab.resthalfapp.feature.favorites.api.FavoriteHotel
 import com.resthalflab.resthalfapp.feature.favorites.api.FavoritesRepository
+import com.resthalflab.resthalfapp.feature.search.api.CheckoutArgs
 import com.resthalflab.resthalfapp.feature.search.api.HotelDetailArgs
 import com.resthalflab.resthalfapp.feature.wholesale.api.AccommodationRules
 import com.resthalflab.resthalfapp.feature.wholesale.api.NearbyAttraction
@@ -21,6 +22,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.daysUntil
 
 interface HotelDetailComponent {
     val state: StateFlow<UiState>
@@ -55,6 +58,7 @@ interface HotelDetailComponent {
         val rooms: List<RoomOffer>,
         val currency: String,
         val fromPrice: Int?,
+        val nextToken: String? = null,
         val loading: Boolean = true,
         val error: String? = null,
     )
@@ -66,6 +70,7 @@ class DefaultHotelDetailComponent(
     private val favorites: FavoritesRepository,
     private val args: HotelDetailArgs,
     private val onBack: () -> Unit,
+    private val onOpenCheckout: (CheckoutArgs) -> Unit,
 ) : HotelDetailComponent, ComponentContext by componentContext {
 
     private val scope = coroutineScope(Dispatchers.Main)
@@ -145,6 +150,7 @@ class DefaultHotelDetailComponent(
                             rooms = detail.rooms,
                             currency = detail.currency,
                             fromPrice = fromPrice,
+                            nextToken = detail.nextToken,
                         )
                     }
                 }
@@ -174,7 +180,32 @@ class DefaultHotelDetailComponent(
         )
     }
 
-    // Selecting an option kicks off pricing → book init — that's the next Phase-2 sub-step, so this
-    // is intentionally a no-op for now.
-    override fun onSelectOption(room: RoomOffer, option: RoomRateOption) = Unit
+    override fun onSelectOption(room: RoomOffer, option: RoomRateOption) {
+        val token = _state.value.nextToken?.ifBlank { null } ?: return
+        val recommendationId = option.recommendationId?.ifBlank { null } ?: return
+        val nights = runCatching {
+            LocalDate.parse(args.checkIn).daysUntil(LocalDate.parse(args.checkOut)).coerceAtLeast(1)
+        }.getOrDefault(1)
+        onOpenCheckout(
+            CheckoutArgs(
+                hotelId = args.hotelId,
+                token = token,
+                recommendationId = recommendationId,
+                rateId = option.rateId,
+                hotelName = _state.value.hotelName,
+                heroImage = _state.value.heroImage,
+                location = _state.value.address,
+                roomName = room.name,
+                boardBasisLabel = option.boardBasisLabel,
+                breakfastIncluded = option.breakfastIncluded,
+                refundable = option.refundable,
+                checkIn = args.checkIn,
+                checkOut = args.checkOut,
+                nights = nights,
+                totalRate = option.totalRate,
+                perNightRate = option.perNightRate,
+                currency = option.currency,
+            )
+        )
+    }
 }
