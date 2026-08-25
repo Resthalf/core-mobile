@@ -130,6 +130,9 @@ class DefaultResultsComponent(
                 slotLabel = hotel.category ?: "Hotel",
                 fromPrice = hotel.perNightRate,
                 currency = hotel.currency,
+                imageUrl = hotel.imageUrl,
+                rating = hotel.rating,
+                location = args.location,
             )
         )
     }
@@ -149,6 +152,7 @@ class DefaultResultsComponent(
                 searchToken = searchToken,
                 checkIn = checkIn,
                 checkOut = checkOut,
+                location = args.location,
             )
         )
     }

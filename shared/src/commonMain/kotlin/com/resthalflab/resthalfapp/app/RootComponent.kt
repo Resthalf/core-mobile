@@ -105,6 +105,7 @@ class DefaultRootComponent(
                     koin = koin,
                     accountType = auth.session.value?.accountType ?: AccountType.Guest,
                     onOpenSearchResults = { args -> navigation.push(Config.SearchResults(args)) },
+                    onOpenHotelDetail = { args -> navigation.push(Config.HotelDetail(args)) },
                     onOpenBookingDetail = { id -> navigation.push(Config.BookingDetail(id)) },
                 )
             )

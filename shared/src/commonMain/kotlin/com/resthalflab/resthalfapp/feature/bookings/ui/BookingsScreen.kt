@@ -217,7 +217,12 @@ private fun TripCard(booking: Booking, onClick: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    RhButton(text = "View Itinerary", onClick = onClick)
+                    RhButton(
+                        text = "View Itinerary",
+                        onClick = {},
+                        shape = RoundedCornerShape(percent = 80),
+                        contentPadding = PaddingValues(horizontal = RhSpacing.sm, vertical = 0.dp),
+                    )
                 }
             }
         }

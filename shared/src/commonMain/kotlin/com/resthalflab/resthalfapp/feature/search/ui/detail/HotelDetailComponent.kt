@@ -176,6 +176,9 @@ class DefaultHotelDetailComponent(
                 slotLabel = current.category ?: "Hotel",
                 fromPrice = current.fromPrice ?: 0,
                 currency = current.currency,
+                imageUrl = args.heroImage,
+                rating = args.starRating?.toDouble(),
+                location = args.location,
             )
         )
     }

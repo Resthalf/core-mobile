@@ -1,5 +1,6 @@
 package com.resthalflab.resthalfapp.feature.search.api
 
+import com.resthalflab.resthalfapp.feature.wholesale.api.LocationSuggestion
 import kotlinx.serialization.Serializable
 
 /**
@@ -21,4 +22,6 @@ data class HotelDetailArgs(
     val searchToken: String,
     val checkIn: String,
     val checkOut: String,
+    /** Destination the hotel was found under — carried so a save from here keeps it searchable. */
+    val location: LocationSuggestion? = null,
 )
