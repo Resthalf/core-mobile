@@ -72,6 +72,7 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
+            implementation(libs.androidx.core.ktx)
             implementation(libs.ktor.client.android)
             implementation(libs.koin.android)
             // Google sign-in (Credential Manager) + Firebase Auth — used by the Android actual of

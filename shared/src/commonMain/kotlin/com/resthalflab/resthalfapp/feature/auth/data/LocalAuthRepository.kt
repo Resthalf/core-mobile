@@ -40,6 +40,7 @@ class LocalAuthRepository(
                 phone = "",
                 accountType = AccountType.Guest,
                 email = account.email,
+                photoUrl = account.photoUrl,
             )
         )
     }

@@ -1,7 +1,13 @@
 package com.resthalflab.resthalfapp
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -18,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import coil3.ImageLoader
@@ -28,6 +35,7 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.resthalflab.resthalfapp.app.MainComponent
 import com.resthalflab.resthalfapp.app.RootComponent
+import com.resthalflab.resthalfapp.app.StatusBarAppearance
 import com.resthalflab.resthalfapp.core.design.ResthalfTheme
 import com.resthalflab.resthalfapp.feature.auth.ui.welcome.WelcomeScreen
 import com.resthalflab.resthalfapp.feature.bookings.ui.BookingsScreen
@@ -78,35 +86,52 @@ fun App(rootComponent: RootComponent) {
 private fun MainScreen(component: MainComponent) {
     val stack by component.stack.subscribeAsState()
     val activeTab = stack.active.instance.tab
+    val homeActive = activeTab == MainComponent.Tab.Home
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            NavigationBar {
-                component.tabs.forEach { tab ->
-                    NavigationBarItem(
-                        selected = activeTab == tab,
-                        onClick = { component.onTabSelected(tab) },
-                        icon = { Icon(tab.icon(), contentDescription = tab.label()) },
-                        label = { Text(tab.label()) },
-                    )
+    // Home has a coloured brand header; tint the status bar to match (light icons). Other tabs are light.
+    StatusBarAppearance(lightStatusBar = !homeActive)
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = {
+                NavigationBar {
+                    component.tabs.forEach { tab ->
+                        NavigationBarItem(
+                            selected = activeTab == tab,
+                            onClick = { component.onTabSelected(tab) },
+                            icon = { Icon(tab.icon(), contentDescription = tab.label()) },
+                            label = { Text(tab.label()) },
+                        )
+                    }
+                }
+            },
+        ) { padding ->
+            Children(
+                stack = component.stack,
+                modifier = Modifier.fillMaxSize().padding(padding),
+            ) { child ->
+                when (val instance = child.instance) {
+                    is MainComponent.Child.Home -> SearchTab(instance.component)
+                    is MainComponent.Child.Bookings -> BookingsScreen(instance.component)
+                    is MainComponent.Child.Favorites -> FavoritesScreen(instance.component)
+                    is MainComponent.Child.StaffHome -> StaffHomeScreen(instance.component)
+                    is MainComponent.Child.CheckIns -> CheckInsScreen(instance.component)
+                    is MainComponent.Child.Rooms -> RoomsScreen(instance.component)
+                    is MainComponent.Child.Profile -> ProfileScreen(instance.component)
                 }
             }
-        },
-    ) { padding ->
-        Children(
-            stack = component.stack,
-            modifier = Modifier.fillMaxSize().padding(padding),
-        ) { child ->
-            when (val instance = child.instance) {
-                is MainComponent.Child.Home -> SearchTab(instance.component)
-                is MainComponent.Child.Bookings -> BookingsScreen(instance.component)
-                is MainComponent.Child.Favorites -> FavoritesScreen(instance.component)
-                is MainComponent.Child.StaffHome -> StaffHomeScreen(instance.component)
-                is MainComponent.Child.CheckIns -> CheckInsScreen(instance.component)
-                is MainComponent.Child.Rooms -> RoomsScreen(instance.component)
-                is MainComponent.Child.Profile -> ProfileScreen(instance.component)
-            }
+        }
+
+        // Paint the status-bar strip to match the Home brand header so they read as one band.
+        if (homeActive) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .windowInsetsTopHeight(WindowInsets.statusBars)
+                    .background(MaterialTheme.colorScheme.primary),
+            )
         }
     }
 }

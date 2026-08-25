@@ -1,6 +1,7 @@
 package com.resthalflab.resthalfapp.feature.search
 
 import com.arkivanov.decompose.ComponentContext
+import com.resthalflab.resthalfapp.feature.auth.api.AuthApi
 import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
 import com.resthalflab.resthalfapp.feature.search.data.OfflineSearchRepository
 import com.resthalflab.resthalfapp.feature.search.domain.SearchHotelsUseCase
@@ -23,8 +24,13 @@ fun searchTabComponent(
     componentContext: ComponentContext,
     koin: Koin,
     onOpenSearchResults: (SearchArgs) -> Unit,
-): SearchTabComponent = DefaultSearchTabComponent(
-    componentContext = componentContext,
-    locationSearch = koin.get(),
-    onOpenSearchResults = onOpenSearchResults,
-)
+): SearchTabComponent {
+    val session = koin.get<AuthApi>().session.value
+    return DefaultSearchTabComponent(
+        componentContext = componentContext,
+        locationSearch = koin.get(),
+        onOpenSearchResults = onOpenSearchResults,
+        userName = session?.displayName.orEmpty(),
+        avatarUrl = session?.photoUrl,
+    )
+}

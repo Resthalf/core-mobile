@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,16 +29,23 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +56,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.resthalflab.resthalfapp.core.design.RhRadius
 import com.resthalflab.resthalfapp.core.design.RhSpacing
 import com.resthalflab.resthalfapp.core.design.RhStarGold
 import com.resthalflab.resthalfapp.core.design.RhSuccess
@@ -61,13 +70,22 @@ import com.resthalflab.resthalfapp.feature.wholesale.api.WholesaleHotel
 fun ResultsScreen(component: ResultsComponent) {
     val state by component.state.collectAsStateWithLifecycle()
     val favoriteIds by component.favoriteHotelIds.collectAsStateWithLifecycle()
+    var showFilter by remember { mutableStateOf(false) }
+    var showSort by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+
+    // Applying a new filter/sort changes the whole list — snap back to the top.
+    LaunchedEffect(state.filters, state.sort) {
+        if (state.visibleResults.isNotEmpty()) listState.scrollToItem(0)
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         ResultsHeader(
-            locationLabel = state.locationLabel,
-            dateLabel = state.dateLabel,
-            guestsLabel = state.guestsLabel,
+            state = state,
             onBack = component::onBackClicked,
+            onFilterClick = { showFilter = true },
+            onSortClick = { showSort = true },
+            onQuickFilter = component::onApplyFilters,
         )
 
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -101,12 +119,26 @@ fun ResultsScreen(component: ResultsComponent) {
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 64.dp),
                 )
 
+                state.visibleResults.isEmpty() -> Column(
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 64.dp, start = RhSpacing.xl, end = RhSpacing.xl),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(RhSpacing.md),
+                ) {
+                    Text(
+                        text = "No hotels match your filters",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Button(onClick = { component.onApplyFilters(HotelFilters()) }) { Text("Clear filters") }
+                }
+
                 else -> LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize().navigationBarsPadding(),
                     contentPadding = PaddingValues(RhSpacing.lg),
                     verticalArrangement = Arrangement.spacedBy(RhSpacing.md),
                 ) {
-                    items(state.results, key = { it.id }) { hotel ->
+                    items(state.visibleResults, key = { it.id }) { hotel ->
                         HotelCard(
                             hotel = hotel,
                             isFavorite = hotel.id in favoriteIds,
@@ -118,14 +150,40 @@ fun ResultsScreen(component: ResultsComponent) {
             }
         }
     }
+
+    if (showFilter) {
+        state.facets?.let { facets ->
+            FilterSheet(
+                facets = facets,
+                current = state.filters,
+                locationLabel = state.locationLabel,
+                onApply = {
+                    component.onApplyFilters(it)
+                    showFilter = false
+                },
+                onDismiss = { showFilter = false },
+            )
+        }
+    }
+    if (showSort) {
+        SortSheet(
+            current = state.sort,
+            onSelect = {
+                component.onSortSelected(it)
+                showSort = false
+            },
+            onDismiss = { showSort = false },
+        )
+    }
 }
 
 @Composable
 private fun ResultsHeader(
-    locationLabel: String,
-    dateLabel: String,
-    guestsLabel: String,
+    state: ResultsComponent.UiState,
     onBack: () -> Unit,
+    onFilterClick: () -> Unit,
+    onSortClick: () -> Unit,
+    onQuickFilter: (HotelFilters) -> Unit,
 ) {
     Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp) {
         Column(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
@@ -144,7 +202,7 @@ private fun ResultsHeader(
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = locationLabel,
+                            text = state.locationLabel,
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
@@ -159,23 +217,57 @@ private fun ResultsHeader(
                         )
                     }
                     Text(
-                        text = "$dateLabel · $guestsLabel",
+                        text = "${state.dateLabel} · ${state.guestsLabel}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = RhSpacing.lg, vertical = RhSpacing.md),
-                horizontalArrangement = Arrangement.spacedBy(RhSpacing.sm),
-            ) {
-                // Static filter chips — wired in a later step.
-                listOf("Filters", "Dates", "Price", "Property type").forEach { label ->
-                    SuggestionChip(onClick = { }, label = { Text(label) })
+            // Filter / Sort actions + popular quick toggles. Hidden until results arrive.
+            if (state.results.isNotEmpty()) {
+                val filters = state.filters
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = RhSpacing.lg, vertical = RhSpacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(RhSpacing.sm),
+                ) {
+                    AssistChip(
+                        onClick = onFilterClick,
+                        shape = RhRadius.button,
+                        leadingIcon = { Icon(Icons.Outlined.FilterList, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        label = {
+                            Text(if (state.activeFilterCount > 0) "Filter · ${state.activeFilterCount}" else "Filter")
+                        },
+                    )
+                    AssistChip(
+                        onClick = onSortClick,
+                        shape = RhRadius.button,
+                        leadingIcon = { Icon(Icons.Outlined.SwapVert, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        label = {
+                            Text(if (state.sort == SortOption.Recommended) "Sort" else state.sort.label)
+                        },
+                    )
+                    FilterChip(
+                        selected = filters.freeCancellation,
+                        onClick = { onQuickFilter(filters.copy(freeCancellation = !filters.freeCancellation)) },
+                        label = { Text("Free cancellation") },
+                        shape = RhRadius.button,
+                    )
+                    FilterChip(
+                        selected = filters.freeBreakfast,
+                        onClick = { onQuickFilter(filters.copy(freeBreakfast = !filters.freeBreakfast)) },
+                        label = { Text("Free breakfast") },
+                        shape = RhRadius.button,
+                    )
+                    FilterChip(
+                        selected = filters.deals,
+                        onClick = { onQuickFilter(filters.copy(deals = !filters.deals)) },
+                        label = { Text("Deals") },
+                        shape = RhRadius.button,
+                    )
                 }
             }
         }

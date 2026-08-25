@@ -32,14 +32,29 @@ interface ResultsComponent {
     fun onBackClicked()
     fun onRetry()
 
+    /** Apply a new filter selection (from the Filter sheet or a quick chip on the bar). */
+    fun onApplyFilters(filters: HotelFilters)
+
+    /** Change the sort order (from the Sort sheet). */
+    fun onSortSelected(sort: SortOption)
+
     data class UiState(
         val locationLabel: String,
         val dateLabel: String,
         val guestsLabel: String,
         val loading: Boolean = false,
+        /** All hotels returned by the search (unfiltered). */
         val results: List<WholesaleHotel> = emptyList(),
+        /** [results] after filtering + sorting — what the list actually renders. */
+        val visibleResults: List<WholesaleHotel> = emptyList(),
+        /** Filter choices derived from [results]; null until the first search returns. */
+        val facets: FilterFacets? = null,
+        val filters: HotelFilters = HotelFilters(),
+        val sort: SortOption = SortOption.Recommended,
         val error: String? = null,
-    )
+    ) {
+        val activeFilterCount: Int get() = filters.activeCount(facets)
+    }
 }
 
 class DefaultResultsComponent(
@@ -89,7 +104,16 @@ class DefaultResultsComponent(
             when (val result = wholesaleSearch.searchHotels(location, checkIn, checkOut, args.occupancy)) {
                 is AppResult.Success -> {
                     searchToken = result.value.token
-                    _state.update { it.copy(loading = false, results = result.value.hotels) }
+                    val hotels = result.value.hotels
+                    val facets = buildFacets(hotels)
+                    _state.update {
+                        it.copy(
+                            loading = false,
+                            results = hotels,
+                            facets = facets,
+                            visibleResults = hotels.applyFilters(it.filters).applySort(it.sort),
+                        )
+                    }
                 }
 
                 is AppResult.Failure -> _state.update { it.copy(loading = false, error = result.error.message) }
@@ -127,6 +151,14 @@ class DefaultResultsComponent(
                 checkOut = checkOut,
             )
         )
+    }
+
+    override fun onApplyFilters(filters: HotelFilters) {
+        _state.update { it.copy(filters = filters, visibleResults = it.results.applyFilters(filters).applySort(it.sort)) }
+    }
+
+    override fun onSortSelected(sort: SortOption) {
+        _state.update { it.copy(sort = sort, visibleResults = it.results.applyFilters(it.filters).applySort(sort)) }
     }
 
     override fun onBackClicked() = onBack()

@@ -43,6 +43,8 @@ interface HomeComponent {
     fun onLocationSelected(suggestion: LocationSuggestion)
 
     data class UiState(
+        val userName: String = "",
+        val avatarUrl: String? = null,
         val city: String,
         val date: LocalDate,
         val checkOut: LocalDate,
@@ -65,6 +67,8 @@ class DefaultHomeComponent(
     componentContext: ComponentContext,
     private val locationSearch: LocationSearchApi,
     private val onSearch: (SearchArgs) -> Unit,
+    userName: String = "",
+    avatarUrl: String? = null,
 ) : HomeComponent, ComponentContext by componentContext {
 
     private val tz = TimeZone.currentSystemDefault()
@@ -73,6 +77,8 @@ class DefaultHomeComponent(
     private val today = Clock.System.todayIn(tz)
     private val _state = MutableStateFlow(
         HomeComponent.UiState(
+            userName = userName,
+            avatarUrl = avatarUrl,
             city = "",
             date = today,
             checkOut = today.plus(DatePeriod(days = 1)),

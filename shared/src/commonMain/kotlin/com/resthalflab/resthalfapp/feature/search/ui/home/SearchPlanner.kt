@@ -1,15 +1,18 @@
 package com.resthalflab.resthalfapp.feature.search.ui.home
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SelectableDates
@@ -52,6 +55,7 @@ fun SearchPlanner(
     var showDatePicker by remember { mutableStateOf(false) }
 
     RhCard(modifier = modifier.fillMaxWidth().padding(horizontal = RhSpacing.xl, vertical = RhSpacing.md)) {
+        FieldLabel("Location")
         RhPickerField(
             value = state.city,
             placeholder = "Where to stay?",
@@ -60,19 +64,33 @@ fun SearchPlanner(
                 showLocationSheet = true
             },
             leadingIcon = Icons.Outlined.LocationOn,
-            trailingIcon = Icons.Outlined.MyLocation,
         )
 
         Spacer(Modifier.height(RhSpacing.md))
-        RhPickerField(
-            value = if (state.dateChosen) rangeLabel(state.date, state.checkOut) else "",
-            placeholder = "Add dates",
-            onClick = { showDatePicker = true },
-            leadingIcon = Icons.Outlined.CalendarMonth,
-            trailingIcon = Icons.Outlined.CalendarMonth,
-        )
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.weight(1f)) {
+                FieldLabel("Check-in")
+                RhPickerField(
+                    value = if (state.dateChosen) dayMonth(state.date) else "",
+                    placeholder = "Add date",
+                    onClick = { showDatePicker = true },
+                    leadingIcon = Icons.Outlined.CalendarMonth,
+                )
+            }
+            Spacer(Modifier.width(RhSpacing.md))
+            Column(modifier = Modifier.weight(1f)) {
+                FieldLabel("Check-out")
+                RhPickerField(
+                    value = if (state.dateChosen) dayMonth(state.checkOut) else "",
+                    placeholder = "Add date",
+                    onClick = { showDatePicker = true },
+                    leadingIcon = Icons.Outlined.CalendarMonth,
+                )
+            }
+        }
 
         Spacer(Modifier.height(RhSpacing.md))
+        FieldLabel("Guests")
         RhPickerField(
             value = if (state.guestsChosen) state.occupancy.summaryLabel() else "",
             placeholder = "1 room, 1 adult, 0 child",
@@ -143,8 +161,15 @@ fun SearchPlanner(
     }
 }
 
-private fun rangeLabel(checkIn: LocalDate, checkOut: LocalDate): String =
-    "${dayMonth(checkIn)} – ${dayMonth(checkOut)}"
+@Composable
+private fun FieldLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = RhSpacing.xs, bottom = RhSpacing.xs),
+    )
+}
 
 private fun dayMonth(date: LocalDate): String {
     val month = date.month.name.lowercase().replaceFirstChar { it.uppercase() }.take(3)

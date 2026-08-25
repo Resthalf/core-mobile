@@ -15,10 +15,14 @@ class DefaultSearchTabComponent(
     componentContext: ComponentContext,
     locationSearch: LocationSearchApi,
     onOpenSearchResults: (SearchArgs) -> Unit,
+    userName: String = "",
+    avatarUrl: String? = null,
 ) : SearchTabComponent, ComponentContext by componentContext {
     override val home: HomeComponent = DefaultHomeComponent(
         componentContext = componentContext,
         locationSearch = locationSearch,
         onSearch = onOpenSearchResults,
+        userName = userName,
+        avatarUrl = avatarUrl,
     )
 }
