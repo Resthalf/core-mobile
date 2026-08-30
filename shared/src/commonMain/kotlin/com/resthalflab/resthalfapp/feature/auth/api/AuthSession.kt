@@ -9,6 +9,7 @@ data class AuthSession(
     val phone: String,
     val accountType: AccountType,
     val email: String? = null,
+    val photoUrl: String? = null,
     // Staff-only
     val role: String? = null,
     val hotelId: String? = null,

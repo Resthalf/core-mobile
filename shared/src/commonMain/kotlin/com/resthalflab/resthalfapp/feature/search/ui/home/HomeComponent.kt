@@ -20,8 +20,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 
@@ -29,7 +31,7 @@ interface HomeComponent {
     val state: StateFlow<UiState>
 
     fun onCitySelected(city: String)
-    fun onDateSelected(date: LocalDate)
+    fun onDateRangeSelected(checkIn: LocalDate, checkOut: LocalDate)
     fun onSlotTypeSelected(slotType: SlotType)
     fun onOccupancyChanged(occupancy: Occupancy)
     fun onSearchClicked()
@@ -41,8 +43,11 @@ interface HomeComponent {
     fun onLocationSelected(suggestion: LocationSuggestion)
 
     data class UiState(
+        val userName: String = "",
+        val avatarUrl: String? = null,
         val city: String,
         val date: LocalDate,
+        val checkOut: LocalDate,
         val slotType: SlotType,
         val occupancy: Occupancy = Occupancy(),
         // Track whether the user has actively picked a date / guests, so the picker rows can show a
@@ -62,15 +67,21 @@ class DefaultHomeComponent(
     componentContext: ComponentContext,
     private val locationSearch: LocationSearchApi,
     private val onSearch: (SearchArgs) -> Unit,
+    userName: String = "",
+    avatarUrl: String? = null,
 ) : HomeComponent, ComponentContext by componentContext {
 
     private val tz = TimeZone.currentSystemDefault()
     private val scope = coroutineScope(Dispatchers.Main)
 
+    private val today = Clock.System.todayIn(tz)
     private val _state = MutableStateFlow(
         HomeComponent.UiState(
+            userName = userName,
+            avatarUrl = avatarUrl,
             city = "",
-            date = Clock.System.todayIn(tz),
+            date = today,
+            checkOut = today.plus(DatePeriod(days = 1)),
             slotType = defaultSlotForNow(),
         )
     )
@@ -90,10 +101,21 @@ class DefaultHomeComponent(
         }
     }
 
-    override fun onCitySelected(city: String) =
+    // Popular chips carry only a city name; resolve it to a real Zentrumhub location so the Nexus
+    // search has an id/coordinates to work with.
+    override fun onCitySelected(city: String) {
         _state.update { it.copy(city = city, selectedLocation = null) }
+        scope.launch {
+            val results = (locationSearch.autosuggest(city) as? AppResult.Success)?.value ?: return@launch
+            val resolved = results.firstOrNull { it.type == LocationType.CITY } ?: results.firstOrNull()
+            if (resolved != null && _state.value.city == city) {
+                _state.update { it.copy(selectedLocation = resolved, city = resolved.name) }
+            }
+        }
+    }
 
-    override fun onDateSelected(date: LocalDate) = _state.update { it.copy(date = date, dateChosen = true) }
+    override fun onDateRangeSelected(checkIn: LocalDate, checkOut: LocalDate) =
+        _state.update { it.copy(date = checkIn, checkOut = checkOut, dateChosen = true) }
 
     override fun onSlotTypeSelected(slotType: SlotType) =
         _state.update { it.copy(slotType = slotType, locationResults = rawResults.filterForSlot(slotType)) }
@@ -122,6 +144,9 @@ class DefaultHomeComponent(
                 slotType = s.slotType,
                 adults = s.occupancy.adults,
                 occupancy = s.occupancy,
+                location = s.selectedLocation,
+                checkIn = s.date.toString(),
+                checkOut = s.checkOut.toString(),
             )
         )
     }

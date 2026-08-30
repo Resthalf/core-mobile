@@ -72,6 +72,7 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
+            implementation(libs.androidx.core.ktx)
             implementation(libs.ktor.client.android)
             implementation(libs.koin.android)
             // Google sign-in (Credential Manager) + Firebase Auth — used by the Android actual of
@@ -105,7 +106,8 @@ kotlin {
             implementation(libs.multiplatform.settings.noarg)
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
-            implementation(libs.kamel.image)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor2)
             // Decompose Navigation & State Management
             implementation(libs.decompose)
             implementation(libs.decompose.compose)

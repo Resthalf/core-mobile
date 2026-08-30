@@ -27,6 +27,11 @@ data class StoredBooking(
     val endedEarly: Boolean = false,
     val endedAt: String? = null,
     val createdAt: Long = 0L,
+    // Presentation fields (used by the Nexus wholesale bookings; blank/null for legacy day-room ones).
+    val imageUrl: String? = null,
+    val tags: List<String> = emptyList(),
+    val dateLabel: String = "",
+    val guestsLabel: String = "",
 )
 
 /** Device-persisted bookings. Public so the listing feature can create bookings into it. */

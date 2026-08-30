@@ -23,17 +23,20 @@ fun RhScrollableTabs(
     selectedIndex: Int,
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    // When false, no tab is highlighted / underlined (e.g. the reader has scrolled past all tabs).
+    showIndicator: Boolean = true,
 ) {
+    val safeIndex = selectedIndex.coerceIn(0, (tabs.size - 1).coerceAtLeast(0))
     ScrollableTabRow(
-        selectedTabIndex = selectedIndex,
+        selectedTabIndex = safeIndex,
         modifier = modifier.fillMaxWidth(),
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.primary,
         edgePadding = 0.dp,
         indicator = { tabPositions ->
-            if (selectedIndex < tabPositions.size) {
+            if (showIndicator && safeIndex < tabPositions.size) {
                 TabRowDefaults.SecondaryIndicator(
-                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedIndex]),
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[safeIndex]),
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -41,7 +44,7 @@ fun RhScrollableTabs(
         divider = {},
     ) {
         tabs.forEachIndexed { index, label ->
-            val selected = index == selectedIndex
+            val selected = showIndicator && index == safeIndex
             Tab(
                 selected = selected,
                 onClick = { onTabSelected(index) },

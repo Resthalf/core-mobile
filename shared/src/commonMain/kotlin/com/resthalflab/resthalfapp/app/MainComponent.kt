@@ -13,6 +13,7 @@ import com.resthalflab.resthalfapp.feature.favorites.favoritesComponent
 import com.resthalflab.resthalfapp.feature.favorites.ui.FavoritesComponent
 import com.resthalflab.resthalfapp.feature.profile.profileComponent
 import com.resthalflab.resthalfapp.feature.profile.ui.ProfileComponent
+import com.resthalflab.resthalfapp.feature.search.api.HotelDetailArgs
 import com.resthalflab.resthalfapp.feature.search.api.SearchArgs
 import com.resthalflab.resthalfapp.feature.search.searchTabComponent
 import com.resthalflab.resthalfapp.feature.search.ui.SearchTabComponent
@@ -69,6 +70,7 @@ class DefaultMainComponent(
     private val koin: Koin,
     private val accountType: AccountType,
     private val onOpenSearchResults: (SearchArgs) -> Unit,
+    private val onOpenHotelDetail: (HotelDetailArgs) -> Unit,
     private val onOpenBookingDetail: (String) -> Unit,
 ) : MainComponent, ComponentContext by componentContext {
 
@@ -122,7 +124,7 @@ class DefaultMainComponent(
                     MainComponent.Child.Home(searchTabComponent(context, koin, onOpenSearchResults))
                 }
             Config.Bookings -> MainComponent.Child.Bookings(bookingsComponent(context, koin, onOpenBookingDetail))
-            Config.Favorites -> MainComponent.Child.Favorites(favoritesComponent(context, koin))
+            Config.Favorites -> MainComponent.Child.Favorites(favoritesComponent(context, koin, onOpenHotelDetail))
             Config.CheckIns -> MainComponent.Child.CheckIns(checkInsComponent(context, koin))
             Config.Rooms -> MainComponent.Child.Rooms(roomsComponent(context, koin))
             Config.Profile -> MainComponent.Child.Profile(profileComponent(context, koin))

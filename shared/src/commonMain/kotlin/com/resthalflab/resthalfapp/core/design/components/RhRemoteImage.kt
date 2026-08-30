@@ -1,14 +1,18 @@
 package com.resthalflab.resthalfapp.core.design.components
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
+import coil3.compose.AsyncImage
 
 /**
- * Loads a remote image via Kamel, falling back to [RhIllustrationPlaceholder] while loading or on
- * failure. Single place to manage image loading — swap the loader here if needed.
+ * Loads a remote image via Coil (memory + disk cached, so re-scrolling a list doesn't re-decode) and
+ * draws [RhIllustrationPlaceholder] behind it — the placeholder shows through while loading or on
+ * failure, then the image paints over it once ready. Single place to manage image loading; the
+ * cached [coil3.ImageLoader] is configured once in App(). Uses a plain (non-subcompose) AsyncImage so
+ * it stays measurable under `Modifier.height(IntrinsicSize.Min)`.
  */
 @Composable
 fun RhRemoteImage(
@@ -17,12 +21,13 @@ fun RhRemoteImage(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
 ) {
-    KamelImage(
-        resource = asyncPainterResource(data = url),
-        contentDescription = contentDescription,
-        modifier = modifier,
-        contentScale = contentScale,
-        onLoading = { RhIllustrationPlaceholder(Modifier.matchParentSize()) },
-        onFailure = { RhIllustrationPlaceholder(Modifier.matchParentSize()) },
-    )
+    Box(modifier = modifier) {
+        RhIllustrationPlaceholder(Modifier.fillMaxSize())
+        AsyncImage(
+            model = url,
+            contentDescription = contentDescription,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = contentScale,
+        )
+    }
 }

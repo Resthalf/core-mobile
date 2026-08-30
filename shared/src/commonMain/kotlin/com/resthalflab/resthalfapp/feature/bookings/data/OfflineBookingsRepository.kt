@@ -93,17 +93,19 @@ class OfflineBookingsRepository(
             bookingCode = bookingCode,
             hotelName = hotelName,
             city = city,
-            dateLabel = BookingTime.formatDate(startTime),
+            dateLabel = dateLabel.ifBlank { BookingTime.formatDate(startTime) },
             stayWindow = BookingTime.formatWindow(startTime, effectiveEnd),
             totalPrice = totalPrice,
             currency = currency,
             status = status,
-            thumbnailUrl = null,
+            thumbnailUrl = imageUrl,
             roomNumber = roomNumber,
             slotType = slotType,
             startTime = startTime,
             endTime = effectiveEnd,
             delegationId = if (status == BookingStatus.Active) id else null,
+            tags = tags,
+            guestsLabel = guestsLabel,
         )
     }
 }

@@ -15,14 +15,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class BookingTab(val label: String) {
-    All("All"),
-    Active("Active"),
-    Completed("Completed"),
-    Cancelled("Cancelled"),
-    Overstayed("Overstayed"),
+    Upcoming("Upcoming"),
+    Past("Past"),
     ;
     companion object {
         val labels = entries.map { it.label }
+
+        // Trips still ahead (or in progress); everything else is Past.
+        val UPCOMING = setOf(BookingStatus.Pending, BookingStatus.Confirmed, BookingStatus.Active)
     }
 }
 
@@ -40,11 +40,8 @@ interface BookingsComponent {
         val error: String? = null,
     ) {
         val visibleBookings: List<Booking> get() = when (BookingTab.entries[selectedTabIndex]) {
-            BookingTab.All -> allBookings
-            BookingTab.Active -> allBookings.filter { it.status == BookingStatus.Active }
-            BookingTab.Completed -> allBookings.filter { it.status == BookingStatus.Completed }
-            BookingTab.Cancelled -> allBookings.filter { it.status == BookingStatus.Cancelled }
-            BookingTab.Overstayed -> allBookings.filter { it.status == BookingStatus.Overstayed }
+            BookingTab.Upcoming -> allBookings.filter { it.status in BookingTab.UPCOMING }
+            BookingTab.Past -> allBookings.filter { it.status !in BookingTab.UPCOMING }
         }
     }
 }

@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.resthalflab.resthalfapp.core.design.RhRadius
 
 /**
- * Placeholder for hero/decorative artwork. Swap for a real asset (Compose resource or KamelImage)
+ * Placeholder for hero/decorative artwork. Swap for a real asset (Compose resource or [RhRemoteImage])
  * once design hands off illustrations — call sites won't need to change.
  */
 @Composable
